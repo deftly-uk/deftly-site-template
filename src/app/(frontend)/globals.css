@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/*
+ * CSS Variables — Claude will override these per client.
+ * The template ships with neutral defaults.
+ */
+:root {
+  --color-primary: #1a1a1a;
+  --color-secondary: #4a4a4a;
+  --color-accent: #2563eb;
+  --color-background: #ffffff;
+  --color-surface: #f9fafb;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+
+  --font-heading: system-ui, sans-serif;
+  --font-body: system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background-color: var(--color-background);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}

@@ -1,0 +1,89 @@
+{
+  "settings": {
+    "businessName": "Example Business",
+    "tagline": "Your tagline here",
+    "phone": "01234 567890",
+    "email": "hello@example.com",
+    "location": "London, UK",
+    "heroHeading": "Welcome to Example Business",
+    "heroSubheading": "A brief description of what you do and why clients should choose you.",
+    "aboutHeading": "About Us",
+    "aboutText": "We've been serving our community for over 10 years, bringing quality and care to every project.\n\nOur team is passionate about delivering results that exceed expectations. We believe in honest communication, fair pricing, and standing behind our work.",
+    "ctaHeading": "Ready to Get Started?",
+    "ctaText": "Get in touch today for a free, no-obligation quote.",
+    "ctaButtonText": "Contact Us",
+    "ctaButtonLink": "/contact",
+    "navLinks": [
+      { "label": "Home", "href": "/" },
+      { "label": "Services", "href": "/services" },
+      { "label": "Gallery", "href": "/gallery" },
+      { "label": "About", "href": "/about" },
+      { "label": "Testimonials", "href": "/testimonials" },
+      { "label": "Contact", "href": "/contact" }
+    ],
+    "socialLinks": [
+      { "platform": "facebook", "url": "https://facebook.com/example" },
+      { "platform": "instagram", "url": "https://instagram.com/example" }
+    ],
+    "footerText": ""
+  },
+  "services": [
+    {
+      "title": "Service One",
+      "description": "A brief description of this service and why clients need it.",
+      "image": "service-one.jpg"
+    },
+    {
+      "title": "Service Two",
+      "description": "Another service you offer, highlighting the key benefits.",
+      "image": "service-two.jpg"
+    },
+    {
+      "title": "Service Three",
+      "description": "A third service with a focus on what makes your approach different.",
+      "image": "service-three.jpg"
+    }
+  ],
+  "testimonials": [
+    {
+      "name": "Sarah",
+      "role": "Homeowner",
+      "quote": "Absolutely fantastic work. Professional from start to finish and the results speak for themselves.",
+      "rating": 5
+    },
+    {
+      "name": "James",
+      "role": "Business Owner",
+      "quote": "We've used them twice now and both times they delivered on time and on budget. Highly recommended.",
+      "rating": 5
+    },
+    {
+      "name": "Emma",
+      "role": "Property Manager",
+      "quote": "Reliable, tidy, and great attention to detail. Exactly what you want from a tradesperson.",
+      "rating": 5
+    }
+  ],
+  "gallery": [
+    {
+      "title": "Project One",
+      "image": "gallery-1.jpg",
+      "category": "Residential"
+    },
+    {
+      "title": "Project Two",
+      "image": "gallery-2.jpg",
+      "category": "Commercial"
+    },
+    {
+      "title": "Project Three",
+      "image": "gallery-3.jpg",
+      "category": "Residential"
+    }
+  ],
+  "images": {
+    "hero": "hero.jpg",
+    "logo": "logo.png",
+    "about": "about.jpg"
+  }
+}

@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Vercel
+.vercel/
+
+# Environment
+.env*
+.env.production
+
+# Images — not committed to git
+# Images live in CMS/Vercel Blob, not in the repo
+raw-images/
+public/uploads/
+
+# Misc
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
