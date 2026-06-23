@@ -25,6 +25,14 @@ unstyled scaffold is preserved locally in `_graveyard/`).
   (migration mode, not `push`), idempotent seed run against production.
 - Deployed live on Vercel (framework preset `nextjs`, build runs migrations + import map).
 
+### Hardened (post-review)
+- Moved the last customer-visible strings into the CMS (section eyebrows, header/mobile
+  CTA labels, 404 copy, privacy title, contact call prompt) — full Article I compliance.
+- Accessibility: white-on-accent buttons + accent text now meet WCAG AA (auto-derived
+  `accent-strong` token); testimonial star ratings have a text alternative.
+- Security: CMS content escaped in JSON-LD; GraphQL playground disabled in production.
+- SEO: added `sitemap.xml` + `robots.txt`; address country mapped to ISO code.
+
 ### Stack
 - Next.js 16 + Payload CMS 3.85, `@payloadcms/db-vercel-postgres`, Neon, Vercel Blob,
   Tailwind v4, React 19.
