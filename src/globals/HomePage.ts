@@ -52,6 +52,7 @@ export const HomePage: GlobalConfig = {
         {
           label: 'Services',
           fields: [
+            { name: 'servicesEyebrow', type: 'text', label: 'Small label above the heading', defaultValue: 'Our services' },
             { name: 'servicesHeading', type: 'text', label: 'Section heading', defaultValue: 'What we do' },
             { name: 'servicesIntro', type: 'textarea', label: 'Short intro under the heading (optional)' },
           ],
@@ -60,6 +61,7 @@ export const HomePage: GlobalConfig = {
         {
           label: 'About / Why us',
           fields: [
+            { name: 'aboutEyebrow', type: 'text', label: 'Small label above the heading', defaultValue: 'Why choose us' },
             { name: 'aboutHeading', type: 'text', label: 'Section heading', defaultValue: 'Why choose us' },
             { name: 'aboutBody', type: 'richText', label: 'About text' },
             { name: 'aboutImage', type: 'upload', relationTo: 'media', label: 'Photo (e.g. team, van, finished job)' },
@@ -76,6 +78,7 @@ export const HomePage: GlobalConfig = {
         {
           label: 'Testimonials',
           fields: [
+            { name: 'testimonialsEyebrow', type: 'text', label: 'Small label above the heading', defaultValue: 'Reviews' },
             { name: 'testimonialsHeading', type: 'text', label: 'Section heading', defaultValue: 'What our customers say' },
             { name: 'testimonialsIntro', type: 'textarea', label: 'Short intro (optional)' },
           ],
@@ -93,6 +96,7 @@ export const HomePage: GlobalConfig = {
               labels: { singular: 'Reassurance', plural: 'Reassurances' },
               fields: [{ name: 'text', type: 'text', required: true }],
             },
+            { name: 'contactCallPrompt', type: 'text', label: 'Text above the phone number in the contact band', defaultValue: 'Prefer to talk now? Call us:' },
             { name: 'contactSubmitLabel', type: 'text', label: 'Send button text', defaultValue: 'Request a callback' },
             { name: 'contactSuccessMessage', type: 'textarea', label: 'Thank-you message after sending', defaultValue: "Thanks — we've got your details and will be in touch shortly." },
           ],

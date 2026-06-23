@@ -17,7 +17,7 @@ export const Testimonials: React.FC<Props> = ({ home, testimonials }) => {
     <section id="reviews" className="section bg-white">
       <div className="container-x">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="eyebrow">Reviews</span>
+          <span className="eyebrow">{home.testimonialsEyebrow || 'Reviews'}</span>
           <h2 className="mt-3 text-3xl font-extrabold sm:text-4xl">
             {home.testimonialsHeading || 'What our customers say'}
           </h2>
@@ -30,7 +30,7 @@ export const Testimonials: React.FC<Props> = ({ home, testimonials }) => {
           {testimonials.map((t) => (
             <li key={t.id} className="card flex flex-col p-6">
               <QuoteIcon className="h-8 w-8 text-[color:var(--color-accent)]/35" />
-              <Stars value={t.rating} className="mt-3" />
+              <Stars value={t.rating} className="mt-3" label={`Rated ${t.rating ?? 5} out of 5 stars`} />
               <blockquote className="mt-4 flex-1 text-[color:var(--color-ink)]">
                 “{t.quote}”
               </blockquote>

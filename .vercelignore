@@ -1,0 +1,6 @@
+_graveyard
+.env
+.env.*
+node_modules
+.next
+.git

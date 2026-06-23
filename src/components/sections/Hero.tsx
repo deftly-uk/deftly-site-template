@@ -18,11 +18,13 @@ export const Hero: React.FC<Props> = ({ home, settings }) => {
   const rating = settings.rating
   const firstAccreditation = settings.accreditations?.[0]
 
+  // Each chip carries its own icon so the shield always sits with the accreditation,
+  // regardless of which optional CMS fields are filled in.
   const chips = [
-    settings.establishedYear ? `Established ${settings.establishedYear}` : null,
-    firstAccreditation?.name || null,
-    settings.insuranceText || null,
-  ].filter(Boolean) as string[]
+    settings.establishedYear ? { label: `Established ${settings.establishedYear}`, icon: 'check' as const } : null,
+    firstAccreditation?.name ? { label: firstAccreditation.name, icon: 'shield' as const } : null,
+    settings.insuranceText ? { label: settings.insuranceText, icon: 'check' as const } : null,
+  ].filter((c): c is { label: string; icon: 'check' | 'shield' } => Boolean(c))
 
   return (
     <section className="relative isolate overflow-hidden bg-[color:var(--color-brand-dark)] text-white">
@@ -94,12 +96,12 @@ export const Hero: React.FC<Props> = ({ home, settings }) => {
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2.5">
               {chips.map((chip, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm font-medium text-slate-100">
-                  {i === 1 ? (
+                  {chip.icon === 'shield' ? (
                     <ShieldCheckIcon className="h-5 w-5 text-[color:var(--color-accent)]" />
                   ) : (
                     <CheckIcon className="h-5 w-5 text-[color:var(--color-accent)]" />
                   )}
-                  {chip}
+                  {chip.label}
                 </li>
               ))}
             </ul>

@@ -15,7 +15,7 @@ export const Services: React.FC<Props> = ({ home, services }) => {
     <section id="services" className="section bg-white">
       <div className="container-x">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="eyebrow">Our services</span>
+          <span className="eyebrow">{home.servicesEyebrow || 'Our services'}</span>
           <h2 className="mt-3 text-3xl font-extrabold sm:text-4xl">
             {home.servicesHeading || 'What we do'}
           </h2>

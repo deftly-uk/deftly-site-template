@@ -19,6 +19,22 @@ const VALID_SUBTYPES = new Set([
 const subtype = (tradeType?: string | null): string =>
   tradeType && VALID_SUBTYPES.has(tradeType) ? tradeType : 'LocalBusiness'
 
+// Map a CMS country display name to an ISO 3166-1 alpha-2 code for structured data.
+const COUNTRY_CODES: Record<string, string> = {
+  'united kingdom': 'GB',
+  'great britain': 'GB',
+  uk: 'GB',
+  england: 'GB',
+  scotland: 'GB',
+  wales: 'GB',
+  'northern ireland': 'GB',
+  ireland: 'IE',
+}
+const countryCode = (country?: string | null): string => {
+  if (!country) return 'GB'
+  return COUNTRY_CODES[country.trim().toLowerCase()] || 'GB'
+}
+
 /**
  * LocalBusiness JSON-LD derived entirely from CMS content.
  * HARD RULE: never includes aggregateRating/review — self-authored ratings risk a
@@ -61,7 +77,7 @@ export const buildLocalBusinessJsonLd = (
       addressLocality: addr.city || undefined,
       addressRegion: addr.county || undefined,
       postalCode: addr.postcode || undefined,
-      addressCountry: 'GB',
+      addressCountry: countryCode(addr.country),
     }
   }
 

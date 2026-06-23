@@ -19,7 +19,7 @@ export const About: React.FC<{ home: HomePage }> = ({ home }) => {
       <div className="container-x">
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div className={image ? '' : 'mx-auto max-w-2xl text-center'}>
-            <span className="eyebrow">Why choose us</span>
+            <span className="eyebrow">{home.aboutEyebrow || 'Why choose us'}</span>
             <h2 className="mt-3 text-3xl font-extrabold sm:text-4xl">
               {home.aboutHeading || 'Why choose us'}
             </h2>

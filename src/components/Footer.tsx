@@ -13,10 +13,19 @@ import {
   PhoneIcon,
 } from './icons'
 
+const WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
 const dayLabel = (days?: (string | null)[] | null): string => {
   if (!days || days.length === 0) return ''
-  const short = days.map((d) => (d || '').slice(0, 3))
-  return short.length > 2 ? `${short[0]}–${short[short.length - 1]}` : short.join(' & ')
+  const idx = (days.filter(Boolean) as string[])
+    .map((d) => WEEK.indexOf(d))
+    .filter((i) => i >= 0)
+    .sort((a, b) => a - b)
+  if (idx.length === 0) return ''
+  const short = idx.map((i) => WEEK[i].slice(0, 3))
+  // Only collapse to a range (Mon–Fri) when the days are genuinely consecutive.
+  const consecutive = idx.every((n, i) => i === 0 || n === idx[i - 1] + 1)
+  return consecutive && short.length > 2 ? `${short[0]}–${short[short.length - 1]}` : short.join(', ')
 }
 
 /** Footer with the UK legal floor (company details) + contact, hours, areas, social. */

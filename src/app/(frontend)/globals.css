@@ -11,7 +11,10 @@
   --color-brand-dark: #0c2238;
   --color-brand-light: #25507f;
   --color-accent: #e0620d;
-  --color-accent-dark: #b84e0a;
+  /* accent-strong: AA-safe (>=4.5:1) for white text on accent + small accent text.
+     Auto-derived from the CMS accent in theme.ts so customer colours stay accessible. */
+  --color-accent-strong: #b84e0a;
+  --color-accent-dark: #8f3c08;
   --color-ink: #161d27;
   --color-body: #475569;
   --color-muted: #64748b;
@@ -89,7 +92,7 @@
   font-size: 0.8125rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-accent);
+  color: var(--color-accent-strong);
 }
 
 /* Buttons — large tap targets (44px+), bold labels for AA on the accent fill. */
@@ -116,9 +119,9 @@
   cursor: not-allowed;
 }
 .btn-accent {
-  background: var(--color-accent);
+  background: var(--color-accent-strong);
   color: #fff;
-  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--color-accent) 75%, transparent);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--color-accent-strong) 75%, transparent);
 }
 .btn-accent:hover {
   background: var(--color-accent-dark);

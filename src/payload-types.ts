@@ -542,6 +542,16 @@ export interface SiteSetting {
     | null;
   logo?: (number | null) | Media;
   establishedYear?: number | null;
+  cta?: {
+    callCaption?: string | null;
+    callLabel?: string | null;
+    quoteLabel?: string | null;
+  };
+  notFound?: {
+    heading?: string | null;
+    body?: string | null;
+    backLabel?: string | null;
+  };
   phone: string;
   phoneDisplay?: string | null;
   email?: string | null;
@@ -592,6 +602,7 @@ export interface SiteSetting {
   companyNumber?: string | null;
   vatNumber?: string | null;
   registeredOffice?: string | null;
+  privacyPageTitle?: string | null;
   privacyPolicy?: {
     root: {
       type: string;
@@ -640,8 +651,10 @@ export interface HomePage {
         id?: string | null;
       }[]
     | null;
+  servicesEyebrow?: string | null;
   servicesHeading?: string | null;
   servicesIntro?: string | null;
+  aboutEyebrow?: string | null;
   aboutHeading?: string | null;
   aboutBody?: {
     root: {
@@ -665,6 +678,7 @@ export interface HomePage {
         id?: string | null;
       }[]
     | null;
+  testimonialsEyebrow?: string | null;
   testimonialsHeading?: string | null;
   testimonialsIntro?: string | null;
   contactHeading?: string | null;
@@ -675,6 +689,7 @@ export interface HomePage {
         id?: string | null;
       }[]
     | null;
+  contactCallPrompt?: string | null;
   contactSubmitLabel?: string | null;
   contactSuccessMessage?: string | null;
   metaTitle?: string | null;
@@ -694,6 +709,20 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   tradeType?: T;
   logo?: T;
   establishedYear?: T;
+  cta?:
+    | T
+    | {
+        callCaption?: T;
+        callLabel?: T;
+        quoteLabel?: T;
+      };
+  notFound?:
+    | T
+    | {
+        heading?: T;
+        body?: T;
+        backLabel?: T;
+      };
   phone?: T;
   phoneDisplay?: T;
   email?: T;
@@ -745,6 +774,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   companyNumber?: T;
   vatNumber?: T;
   registeredOffice?: T;
+  privacyPageTitle?: T;
   privacyPolicy?: T;
   social?:
     | T
@@ -779,8 +809,10 @@ export interface HomePageSelect<T extends boolean = true> {
         text?: T;
         id?: T;
       };
+  servicesEyebrow?: T;
   servicesHeading?: T;
   servicesIntro?: T;
+  aboutEyebrow?: T;
   aboutHeading?: T;
   aboutBody?: T;
   aboutImage?: T;
@@ -790,6 +822,7 @@ export interface HomePageSelect<T extends boolean = true> {
         text?: T;
         id?: T;
       };
+  testimonialsEyebrow?: T;
   testimonialsHeading?: T;
   testimonialsIntro?: T;
   contactHeading?: T;
@@ -800,6 +833,7 @@ export interface HomePageSelect<T extends boolean = true> {
         text?: T;
         id?: T;
       };
+  contactCallPrompt?: T;
   contactSubmitLabel?: T;
   contactSuccessMessage?: T;
   metaTitle?: T;

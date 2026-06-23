@@ -1,9 +1,9 @@
 import React from 'react'
 
 import type { HomePage, SiteSetting } from '@/payload-types'
-import { phoneLabel, telHref } from '@/lib/format'
+import { phoneLabel, telHref, whatsappHref } from '@/lib/format'
 import { ContactForm } from '@/components/ContactForm'
-import { CheckIcon, PhoneIcon } from '@/components/icons'
+import { CheckIcon, PhoneIcon, WhatsappIcon } from '@/components/icons'
 
 type Props = { home: HomePage; settings: SiteSetting }
 
@@ -11,6 +11,7 @@ type Props = { home: HomePage; settings: SiteSetting }
 export const ContactCTA: React.FC<Props> = ({ home, settings }) => {
   const tel = telHref(settings.phone)
   const label = phoneLabel(settings)
+  const whatsapp = whatsappHref(settings.whatsapp)
   const reassurances = (home.contactReassurances || []).map((r) => r.text).filter(Boolean)
 
   return (
@@ -47,7 +48,9 @@ export const ContactCTA: React.FC<Props> = ({ home, settings }) => {
 
             {tel && (
               <div className="mt-9 rounded-xl bg-white/10 p-5 backdrop-blur">
-                <p className="text-sm font-medium text-slate-200">Prefer to talk now? Call us:</p>
+                <p className="text-sm font-medium text-slate-200">
+                  {home.contactCallPrompt || 'Prefer to talk now? Call us:'}
+                </p>
                 <a
                   href={tel}
                   className="mt-1 flex items-center gap-3 font-[family-name:var(--font-heading)] text-2xl font-extrabold text-white transition-opacity hover:opacity-90 sm:text-3xl"
@@ -55,6 +58,17 @@ export const ContactCTA: React.FC<Props> = ({ home, settings }) => {
                   <PhoneIcon className="h-7 w-7 text-[color:var(--color-accent)]" />
                   {label}
                 </a>
+                {whatsapp && (
+                  <a
+                    href={whatsapp}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-slate-100 underline-offset-2 hover:underline"
+                  >
+                    <WhatsappIcon className="h-5 w-5 text-[color:var(--color-accent)]" />
+                    Or message us on WhatsApp
+                  </a>
+                )}
               </div>
             )}
           </div>

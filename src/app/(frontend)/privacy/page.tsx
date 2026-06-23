@@ -6,10 +6,13 @@ import { getSiteSettings } from '@/lib/queries'
 
 export const dynamic = 'force-dynamic'
 
-export const generateMetadata = async (): Promise<Metadata> => ({
-  title: 'Privacy Policy',
-  robots: { index: true, follow: true },
-})
+export const generateMetadata = async (): Promise<Metadata> => {
+  const settings = await getSiteSettings()
+  return {
+    title: settings.privacyPageTitle || 'Privacy Policy',
+    robots: { index: true, follow: true },
+  }
+}
 
 const PrivacyPage = async () => {
   const settings = await getSiteSettings()
@@ -17,7 +20,7 @@ const PrivacyPage = async () => {
   return (
     <section className="section bg-white">
       <div className="container-x max-w-3xl">
-        <h1 className="text-4xl font-extrabold">Privacy Policy</h1>
+        <h1 className="text-4xl font-extrabold">{settings.privacyPageTitle || 'Privacy Policy'}</h1>
         {settings.privacyPolicy ? (
           <RichText data={settings.privacyPolicy} className="prose-cms mt-8 text-lg" />
         ) : (

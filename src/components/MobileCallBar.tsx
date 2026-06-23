@@ -17,17 +17,17 @@ export const MobileCallBar: React.FC<{ settings: SiteSetting }> = ({ settings })
     <div className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-2 gap-px border-t border-[color:var(--color-line)] bg-[color:var(--color-line)] md:hidden">
       <a
         href={tel}
-        className="flex items-center justify-center gap-2 bg-[color:var(--color-accent)] py-3.5 font-[family-name:var(--font-heading)] font-semibold text-white"
+        className="flex items-center justify-center gap-2 bg-[color:var(--color-accent-strong)] py-3.5 font-[family-name:var(--font-heading)] font-semibold text-white"
       >
         <PhoneIcon className="h-5 w-5" />
-        Call now
+        {settings.cta?.callLabel || 'Call now'}
       </a>
       <a
         href="#contact"
         className="flex items-center justify-center gap-2 bg-[color:var(--color-brand)] py-3.5 font-[family-name:var(--font-heading)] font-semibold text-white"
       >
         <QuoteIcon className="h-5 w-5" />
-        Get a quote
+        {settings.cta?.quoteLabel || 'Get a quote'}
       </a>
     </div>
   )

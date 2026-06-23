@@ -48,6 +48,26 @@ export const SiteSettings: GlobalConfig = {
             },
             { name: 'logo', type: 'upload', relationTo: 'media', label: 'Logo (optional — falls back to your business name as text)' },
             { name: 'establishedYear', type: 'number', label: 'Year established (e.g. 2008)' },
+            {
+              name: 'cta',
+              type: 'group',
+              label: 'Buttons (shown in the header and mobile bar)',
+              fields: [
+                { name: 'callCaption', type: 'text', label: 'Small text above the phone number in the header', defaultValue: 'Call us today' },
+                { name: 'callLabel', type: 'text', label: '"Call" button text', defaultValue: 'Call now' },
+                { name: 'quoteLabel', type: 'text', label: '"Get a quote" button text', defaultValue: 'Get a free quote' },
+              ],
+            },
+            {
+              name: 'notFound',
+              type: 'group',
+              label: 'Error page (shown if a visitor hits a missing page)',
+              fields: [
+                { name: 'heading', type: 'text', label: 'Heading', defaultValue: 'Page not found' },
+                { name: 'body', type: 'text', label: 'Message', defaultValue: 'Sorry, we couldn’t find the page you were looking for.' },
+                { name: 'backLabel', type: 'text', label: 'Back-to-home button text', defaultValue: 'Back to home' },
+              ],
+            },
           ],
         },
         // ----------------------------------------------------------------- Contact
@@ -144,6 +164,7 @@ export const SiteSettings: GlobalConfig = {
             { name: 'companyNumber', type: 'text', label: 'Companies House number' },
             { name: 'vatNumber', type: 'text', label: 'VAT number (if registered)' },
             { name: 'registeredOffice', type: 'textarea', label: 'Registered office address (for the footer)' },
+            { name: 'privacyPageTitle', type: 'text', label: 'Privacy page title/heading', defaultValue: 'Privacy Policy' },
             {
               name: 'privacyPolicy',
               type: 'richText',

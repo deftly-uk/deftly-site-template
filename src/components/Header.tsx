@@ -46,14 +46,14 @@ export const Header: React.FC<{ settings: SiteSetting }> = ({ settings }) => {
               </span>
               <span className="hidden text-left leading-tight sm:block">
                 <span className="block text-xs font-medium text-[color:var(--color-muted)]">
-                  Call us today
+                  {settings.cta?.callCaption || 'Call us today'}
                 </span>
                 <span className="block text-[1.0625rem] font-bold tracking-tight">{label}</span>
               </span>
             </a>
           )}
           <a href="#contact" className="btn btn-accent hidden h-11 min-h-0 px-5 text-base md:inline-flex">
-            {settings.tradeType ? 'Get a free quote' : 'Get a quote'}
+            {settings.cta?.quoteLabel || 'Get a free quote'}
           </a>
         </div>
       </div>

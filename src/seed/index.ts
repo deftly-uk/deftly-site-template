@@ -167,9 +167,20 @@ const seed = async (): Promise<void> => {
       tagline: 'Gas Safe plumbers & heating engineers in Harrogate',
       tradeType: 'Plumber',
       establishedYear: 2009,
+      cta: {
+        callCaption: 'Call us today',
+        callLabel: 'Call now',
+        quoteLabel: 'Get a free quote',
+      },
+      notFound: {
+        heading: 'Page not found',
+        body: 'Sorry, we couldn’t find that page. Give us a call and we’ll point you the right way.',
+        backLabel: 'Back to home',
+      },
       phone: '01423555123',
       phoneDisplay: '01423 555 123',
       email: 'hello@ashworthplumbing.co.uk',
+      whatsapp: '+447700900123',
       // Demo: routes test enquiries to the account owner so the email can be verified.
       notificationEmail: process.env.CONTACT_TO_EMAIL_FALLBACK || 'hello@ashworthplumbing.co.uk',
       address: {
@@ -204,6 +215,7 @@ const seed = async (): Promise<void> => {
       companyNumber: '08123456',
       vatNumber: 'GB 312 4567 89',
       registeredOffice: 'Unit 4, Claro Court Business Centre, Harrogate, North Yorkshire, HG1 4BA',
+      privacyPageTitle: 'Privacy Policy',
       privacyPolicy: richText([
         heading('Privacy Policy'),
         paragraph(
@@ -248,9 +260,11 @@ const seed = async (): Promise<void> => {
         { text: 'Free no-obligation quotes' },
         { text: 'Same-day emergency response' },
       ],
+      servicesEyebrow: 'Our services',
       servicesHeading: 'Plumbing & heating services',
       servicesIntro:
         'From a dripping tap to a full boiler installation — one local team you can trust.',
+      aboutEyebrow: 'Why choose us',
       aboutHeading: 'Local, Gas Safe, and properly insured',
       aboutBody: richText([
         paragraph(
@@ -269,11 +283,13 @@ const seed = async (): Promise<void> => {
         { text: 'Family-run since 2009' },
         { text: 'Covering Harrogate & North Yorkshire' },
       ],
+      testimonialsEyebrow: 'Reviews',
       testimonialsHeading: 'What our customers say',
       testimonialsIntro: 'Real reviews from homeowners across Harrogate & North Yorkshire.',
       contactHeading: 'Get a free, no-obligation quote',
       contactBody:
         'Tell us what you need and we’ll get back to you fast — usually within the hour during working hours.',
+      contactCallPrompt: 'Prefer to talk now? Call us:',
       contactReassurances: [
         { text: 'No call-out fee' },
         { text: 'Free fixed quotes' },

@@ -26,6 +26,32 @@ const shade = (hex: string, percent: number): string => {
   return `#${to2(mix(r))}${to2(mix(g))}${to2(mix(b))}`
 }
 
+/** WCAG relative luminance of a hex colour. */
+const luminance = (hex: string): number => {
+  const h = normalize(hex)
+  if (!h) return 1
+  const num = parseInt(h.slice(1), 16)
+  const chan = [(num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff].map((c) => {
+    const s = c / 255
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+  })
+  return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2]
+}
+
+const contrastWithWhite = (hex: string): number => 1.05 / (luminance(hex) + 0.05)
+
+/** Darken a colour until white text on it clears the AA ratio (default 4.5:1). */
+const ensureContrastOnWhite = (hex: string, target = 4.5): string => {
+  let c = normalize(hex)
+  if (!c) return hex
+  let guard = 0
+  while (contrastWithWhite(c) < target && guard < 24) {
+    c = shade(c, -8)
+    guard++
+  }
+  return c
+}
+
 /**
  * CSS custom properties derived from the CMS brand/accent colours.
  * Applied on the .site wrapper so a customer changing their colours in the admin
@@ -46,7 +72,10 @@ export const themeVars = (
   }
   if (accent) {
     vars['--color-accent'] = accent
-    vars['--color-accent-dark'] = shade(accent, -18)
+    // Keep white-on-accent buttons + accent text accessible whatever colour is chosen.
+    const strong = ensureContrastOnWhite(accent, 4.5)
+    vars['--color-accent-strong'] = strong
+    vars['--color-accent-dark'] = shade(strong, -22)
   }
   return vars as CSSProperties
 }
