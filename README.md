@@ -2,6 +2,15 @@
 
 A standardised Next.js + Payload CMS template for client websites. All pages query the CMS, all images live in Vercel Blob (not git), and a seed script handles initial content population.
 
+> ## ⚠️ Status — June 2026: unstyled scaffold, never deployed
+>
+> This is the **starting point** of the per-client site template, not a finished one. As of June 2026 it's a single-commit, CMS-first **scaffold**: wired up (pages query the CMS, seed script present) but **unstyled and never deployed live**. No real customer site has been produced from it yet. **Read the steps below as the intended workflow, not a proven one.**
+>
+> - **Completeness:** ~3/10 (see the master-plan readiness scorecard).
+> - **Known gaps:** no styling/brand; the seed + `go-live` flow is unproven (e.g. the orchestrator calls an `/api/seed` route that doesn't exist here yet).
+> - **Next:** turn this into a real, styled, sellable template and close those gaps — this is the **#1 blocker** for the whole site-generation engine.
+> - **Source of truth:** the cross-repo [Deftly Platform Master Plan](https://github.com/hm293/deftly-orchestrator/blob/main/docs/plans/2026-06-14-deftly-platform-master-plan.md).
+
 ## Stack
 
 - **Next.js 16** — App Router with route groups
@@ -17,7 +26,7 @@ A standardised Next.js + Payload CMS template for client websites. All pages que
 Use GitHub's "Use this template" button, or:
 
 ```bash
-gh repo create my-client-site --template hm293/deftly-site-template --private --clone
+gh repo create my-client-site --template deftly-uk/deftly-site-template --private --clone
 cd my-client-site
 npm install
 ```
