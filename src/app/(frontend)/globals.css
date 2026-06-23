@@ -1,28 +1,200 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-/*
- * CSS Variables — Claude will override these per client.
- * The template ships with neutral defaults.
- */
-:root {
-  --color-primary: #1a1a1a;
-  --color-secondary: #4a4a4a;
-  --color-accent: #2563eb;
-  --color-background: #ffffff;
-  --color-surface: #f9fafb;
-  --color-text: #111827;
-  --color-text-muted: #6b7280;
+/* ============================================================================
+   Design tokens (BUILD-PLAN design system).
+   Trade-appropriate: navy brand + warm CTA accent + slate neutrals, AA contrast.
+   --color-brand / --color-accent are overridden at runtime from the CMS
+   (SiteSettings.brandColor / accentColor) on the .site wrapper.
+   ========================================================================== */
+@theme {
+  --color-brand: #173a5e;
+  --color-brand-dark: #0c2238;
+  --color-brand-light: #25507f;
+  --color-accent: #e0620d;
+  --color-accent-dark: #b84e0a;
+  --color-ink: #161d27;
+  --color-body: #475569;
+  --color-muted: #64748b;
+  --color-surface: #f4f7fa;
+  --color-line: #e2e8f0;
+  --color-star: #f5a623;
 
-  --font-heading: system-ui, sans-serif;
-  --font-body: system-ui, sans-serif;
+  --font-heading: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 14px;
 }
 
-body {
-  font-family: var(--font-body);
-  color: var(--color-text);
-  background-color: var(--color-background);
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: #ffffff;
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 1.0625rem; /* 17px */
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    color: var(--color-ink);
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+  a {
+    color: inherit;
+  }
+  /* Visible keyboard focus everywhere (accessibility). */
+  :focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: #fff;
+  }
 }
 
-h1, h2, h3, h4, h5, h6 {
+/* ============================================================================
+   Reusable components
+   ========================================================================== */
+.container-x {
+  width: 100%;
+  max-width: 75rem; /* 1200px */
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+@media (min-width: 768px) {
+  .container-x {
+    padding-inline: 2rem;
+  }
+}
+
+/* Consistent vertical rhythm: 56px mobile → 96px desktop (8px scale). */
+.section {
+  padding-block: clamp(3.5rem, 7vw, 6rem);
+}
+
+.eyebrow {
+  display: inline-block;
   font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+/* Buttons — large tap targets (44px+), bold labels for AA on the accent fill. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  padding: 0 1.5rem;
+  border-radius: 10px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease,
+    box-shadow 0.18s ease;
+  text-decoration: none;
+}
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.btn-accent {
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--color-accent) 75%, transparent);
+}
+.btn-accent:hover {
+  background: var(--color-accent-dark);
+}
+.btn-brand {
+  background: var(--color-brand);
+  color: #fff;
+}
+.btn-brand:hover {
+  background: var(--color-brand-dark);
+}
+.btn-outline {
+  background: transparent;
+  color: var(--color-brand);
+  border: 2px solid color-mix(in srgb, var(--color-brand) 30%, transparent);
+}
+.btn-outline:hover {
+  border-color: var(--color-brand);
+  background: color-mix(in srgb, var(--color-brand) 5%, transparent);
+}
+/* On dark backgrounds (hero/CTA band). */
+.btn-on-dark {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+}
+.btn-on-dark:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #fff;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px -16px rgba(16, 24, 40, 0.18);
+}
+
+/* Rich-text output (about + privacy). */
+.prose-cms p {
+  margin-block: 0 1rem;
+  color: var(--color-body);
+}
+.prose-cms h2 {
+  font-size: 1.5rem;
+  margin-block: 1.75rem 0.75rem;
+}
+.prose-cms h3 {
+  font-size: 1.25rem;
+  margin-block: 1.5rem 0.5rem;
+}
+.prose-cms ul {
+  margin-block: 0 1rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+  color: var(--color-body);
+}
+.prose-cms li {
+  margin-block: 0.25rem;
+}
+.prose-cms a {
+  color: var(--color-brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-cms strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

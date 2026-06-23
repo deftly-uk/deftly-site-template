@@ -1,47 +1,63 @@
 import type { CollectionConfig } from 'payload'
 
+import { adminsOnly, anyone } from '../access'
+
+/**
+ * Customer testimonials, entered manually in the CMS.
+ * NOTE: these are displayed only. They must NEVER be emitted as aggregateRating/review
+ * JSON-LD in our own schema (Google manual-action risk — see BUILD-PLAN design rules).
+ */
 export const Testimonials: CollectionConfig = {
   slug: 'testimonials',
   admin: {
-    useAsTitle: 'name',
-    defaultColumns: ['name', 'rating', 'sortOrder', 'updatedAt'],
+    useAsTitle: 'authorName',
+    defaultColumns: ['authorName', 'area', 'rating', 'order'],
+    group: 'Content',
+    description: 'Reviews from your customers. Shown on the homepage.',
   },
+  access: {
+    read: anyone,
+    create: adminsOnly,
+    update: adminsOnly,
+    delete: adminsOnly,
+  },
+  defaultSort: 'order',
   fields: [
-    {
-      name: 'name',
-      type: 'text',
-      required: true,
-    },
-    {
-      name: 'role',
-      type: 'text',
-      admin: {
-        description: 'e.g. "Homeowner in Bath"',
-      },
-    },
     {
       name: 'quote',
       type: 'textarea',
       required: true,
+      label: 'What the customer said',
+    },
+    {
+      name: 'authorName',
+      type: 'text',
+      required: true,
+      label: 'Customer name',
+    },
+    {
+      name: 'area',
+      type: 'text',
+      label: 'Their town / area (e.g. "Harrogate")',
+    },
+    {
+      name: 'jobType',
+      type: 'text',
+      label: 'Job done (e.g. "Boiler replacement")',
     },
     {
       name: 'rating',
       type: 'number',
+      label: 'Star rating (1–5)',
+      defaultValue: 5,
       min: 1,
       max: 5,
     },
     {
-      name: 'image',
-      type: 'upload',
-      relationTo: 'media',
-    },
-    {
-      name: 'sortOrder',
+      name: 'order',
       type: 'number',
+      label: 'Display order (lower shows first)',
       defaultValue: 0,
-      admin: {
-        position: 'sidebar',
-      },
     },
   ],
 }

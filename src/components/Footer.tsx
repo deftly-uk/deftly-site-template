@@ -1,99 +1,147 @@
-import React from 'react'
 import Link from 'next/link'
+import React from 'react'
 
-interface NavLink {
-  label: string
-  href: string
-  id?: string
+import type { SiteSetting } from '@/payload-types'
+import { formatAddress, phoneLabel, telHref } from '@/lib/format'
+
+import {
+  ClockIcon,
+  FacebookIcon,
+  InstagramIcon,
+  MailIcon,
+  MapPinIcon,
+  PhoneIcon,
+} from './icons'
+
+const dayLabel = (days?: (string | null)[] | null): string => {
+  if (!days || days.length === 0) return ''
+  const short = days.map((d) => (d || '').slice(0, 3))
+  return short.length > 2 ? `${short[0]}–${short[short.length - 1]}` : short.join(' & ')
 }
 
-interface SocialLink {
-  platform: string
-  url: string
-  id?: string
-}
-
-interface FooterProps {
-  settings: {
-    businessName?: string | null
-    footerText?: string | null
-    navLinks?: NavLink[] | null
-    socialLinks?: SocialLink[] | null
-    phone?: string | null
-    email?: string | null
-  }
-}
-
-const socialIcons: Record<string, string> = {
-  facebook: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z',
-  instagram: 'M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 100 12.324 6.162 6.162 0 100-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 11-2.882 0 1.441 1.441 0 012.882 0z',
-  twitter: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z',
-  linkedin: 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z',
-  youtube: 'M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z',
-  tiktok: 'M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z',
-}
-
-export function Footer({ settings }: FooterProps) {
-  const { businessName, footerText, navLinks, socialLinks, phone, email } = settings
+/** Footer with the UK legal floor (company details) + contact, hours, areas, social. */
+export const Footer: React.FC<{ settings: SiteSetting }> = ({ settings }) => {
+  const tel = telHref(settings.phone)
+  const label = phoneLabel(settings)
+  const address = formatAddress(settings.address)
+  const areas = (settings.areasServed || []).map((a) => a.area).filter(Boolean)
   const year = new Date().getFullYear()
+  const legalName = settings.legalName || settings.businessName
 
   return (
-    <footer className="border-t border-gray-200 bg-gray-50">
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <div className="grid gap-8 md:grid-cols-3">
-          {/* Brand */}
-          <div>
-            <p className="text-lg font-bold">{businessName || 'Business Name'}</p>
-            {phone && <p className="mt-2 text-sm text-gray-600">{phone}</p>}
-            {email && <p className="text-sm text-gray-600">{email}</p>}
-          </div>
-
-          {/* Nav links */}
-          {navLinks && navLinks.length > 0 && (
-            <nav className="flex flex-col gap-2">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.id || link.href}
-                  href={link.href}
-                  className="text-sm text-gray-600 hover:text-gray-900"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-          )}
-
-          {/* Social links */}
-          {socialLinks && socialLinks.length > 0 && (
-            <div className="flex gap-4">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.id || social.url}
-                  href={social.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 transition-colors hover:text-gray-600"
-                  aria-label={social.platform}
-                >
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d={socialIcons[social.platform] || ''} />
-                  </svg>
+    <footer className="bg-[color:var(--color-brand-dark)] text-slate-300">
+      <div className="container-x grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-4">
+        {/* Brand + blurb */}
+        <div>
+          <h3 className="font-[family-name:var(--font-heading)] text-xl font-extrabold text-white">
+            {settings.businessName}
+          </h3>
+          {settings.tagline && <p className="mt-3 text-sm leading-relaxed text-slate-400">{settings.tagline}</p>}
+          {(settings.social?.facebook || settings.social?.instagram) && (
+            <div className="mt-4 flex gap-3">
+              {settings.social?.facebook && (
+                <a href={settings.social.facebook} aria-label="Facebook" className="text-slate-400 transition-colors hover:text-white" target="_blank" rel="noopener noreferrer">
+                  <FacebookIcon className="h-6 w-6" />
                 </a>
-              ))}
+              )}
+              {settings.social?.instagram && (
+                <a href={settings.social.instagram} aria-label="Instagram" className="text-slate-400 transition-colors hover:text-white" target="_blank" rel="noopener noreferrer">
+                  <InstagramIcon className="h-6 w-6" />
+                </a>
+              )}
             </div>
           )}
         </div>
 
-        <div className="mt-8 border-t border-gray-200 pt-8 text-center text-sm text-gray-500">
-          <p>{footerText || `\u00A9 ${year} ${businessName || 'Business Name'}. All rights reserved.`}</p>
-          <p className="mt-1">
-            Built by{' '}
-            <a href="https://deftly.uk" className="underline hover:text-gray-700" target="_blank" rel="noopener noreferrer">
-              Deftly
-            </a>
-          </p>
+        {/* Contact */}
+        <div>
+          <h4 className="font-[family-name:var(--font-heading)] text-sm font-bold uppercase tracking-wider text-white">
+            Contact
+          </h4>
+          <ul className="mt-4 space-y-3 text-sm">
+            {tel && (
+              <li>
+                <a href={tel} className="flex items-center gap-2.5 transition-colors hover:text-white">
+                  <PhoneIcon className="h-[18px] w-[18px] shrink-0 text-[color:var(--color-accent)]" />
+                  {label}
+                </a>
+              </li>
+            )}
+            {settings.email && (
+              <li>
+                <a href={`mailto:${settings.email}`} className="flex items-center gap-2.5 break-all transition-colors hover:text-white">
+                  <MailIcon className="h-[18px] w-[18px] shrink-0 text-[color:var(--color-accent)]" />
+                  {settings.email}
+                </a>
+              </li>
+            )}
+            {address && (
+              <li className="flex items-start gap-2.5">
+                <MapPinIcon className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[color:var(--color-accent)]" />
+                <span>{address}</span>
+              </li>
+            )}
+          </ul>
+        </div>
+
+        {/* Opening hours */}
+        {settings.openingHours && settings.openingHours.length > 0 && (
+          <div>
+            <h4 className="font-[family-name:var(--font-heading)] text-sm font-bold uppercase tracking-wider text-white">
+              Opening hours
+            </h4>
+            <ul className="mt-4 space-y-2 text-sm">
+              {settings.openingHours.map((row, i) => (
+                <li key={i} className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2 text-slate-400">
+                    <ClockIcon className="h-4 w-4" />
+                    {dayLabel(row.days)}
+                  </span>
+                  <span className="text-slate-200">
+                    {row.closed ? 'Closed' : [row.opens, row.closes].filter(Boolean).join('–')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {settings.emergencyText && (
+              <p className="mt-3 text-sm font-medium text-[color:var(--color-accent)]">{settings.emergencyText}</p>
+            )}
+          </div>
+        )}
+
+        {/* Areas served */}
+        {areas.length > 0 && (
+          <div>
+            <h4 className="font-[family-name:var(--font-heading)] text-sm font-bold uppercase tracking-wider text-white">
+              Areas we cover
+            </h4>
+            <p className="mt-4 text-sm leading-relaxed text-slate-400">{areas.join(' · ')}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Legal floor */}
+      <div className="border-t border-white/10">
+        <div className="container-x flex flex-col gap-2 py-6 text-xs leading-relaxed text-slate-400 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <p>
+              © {year} {legalName}.
+              {settings.companyNumber && (
+                <> Registered in England and Wales no. {settings.companyNumber}.</>
+              )}
+              {settings.vatNumber && <> VAT no. {settings.vatNumber}.</>}
+            </p>
+            {settings.registeredOffice && (
+              <p>Registered office: {settings.registeredOffice}</p>
+            )}
+          </div>
+          <Link href="/privacy" className="shrink-0 underline underline-offset-2 transition-colors hover:text-white">
+            Privacy Policy
+          </Link>
         </div>
       </div>
     </footer>
   )
 }
+
+export default Footer

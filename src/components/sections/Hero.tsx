@@ -1,46 +1,113 @@
-import React from 'react'
 import Image from 'next/image'
+import React from 'react'
 
-interface HeroProps {
-  settings: {
-    heroHeading?: string | null
-    heroSubheading?: string | null
-    heroImage?: { url?: string; alt?: string } | null
-    businessName?: string | null
-  }
-}
+import type { HomePage, SiteSetting } from '@/payload-types'
+import { getImage } from '@/lib/media'
+import { telHref } from '@/lib/format'
+import { Stars } from '@/components/Stars'
+import { CheckIcon, PhoneIcon, ShieldCheckIcon } from '@/components/icons'
 
-export function Hero({ settings }: HeroProps) {
-  const { heroHeading, heroSubheading, heroImage, businessName } = settings
+type Props = { home: HomePage; settings: SiteSetting }
+
+/** Hero — answers "who/what/where + reassurance" in one screen, with call + quote CTAs. */
+export const Hero: React.FC<Props> = ({ home, settings }) => {
+  const image = getImage(home.heroImage, 'hero')
+  const tel = telHref(settings.phone)
+  const primaryLabel = home.heroPrimaryCtaLabel || 'Call now'
+  const secondaryLabel = home.heroSecondaryCtaLabel || 'Get a free quote'
+  const rating = settings.rating
+  const firstAccreditation = settings.accreditations?.[0]
+
+  const chips = [
+    settings.establishedYear ? `Established ${settings.establishedYear}` : null,
+    firstAccreditation?.name || null,
+    settings.insuranceText || null,
+  ].filter(Boolean) as string[]
 
   return (
-    <section className="relative flex min-h-[70vh] items-center justify-center overflow-hidden">
-      {heroImage?.url ? (
-        <Image
-          src={heroImage.url}
-          alt={heroImage.alt || heroHeading || 'Hero image'}
-          fill
-          className="object-cover"
-          priority
-        />
+    <section className="relative isolate overflow-hidden bg-[color:var(--color-brand-dark)] text-white">
+      {image ? (
+        <>
+          <Image
+            src={image.url}
+            alt={image.alt || settings.businessName}
+            fill
+            priority
+            fetchPriority="high"
+            sizes="100vw"
+            className="-z-20 object-cover"
+          />
+          {/* 30–40% dark scrim for legible text over the photo. */}
+          <div
+            className="absolute inset-0 -z-10"
+            style={{
+              background:
+                'linear-gradient(100deg, var(--color-brand-dark) 0%, color-mix(in srgb, var(--color-brand-dark) 78%, transparent) 45%, color-mix(in srgb, var(--color-brand-dark) 40%, transparent) 100%)',
+            }}
+          />
+        </>
       ) : (
-        <div className="absolute inset-0 bg-gray-900" />
+        <div
+          className="absolute inset-0 -z-10"
+          style={{
+            background:
+              'linear-gradient(135deg, var(--color-brand-dark) 0%, var(--color-brand) 55%, var(--color-brand-light) 100%)',
+          }}
+        />
       )}
 
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/30" />
+      <div className="container-x py-20 md:py-28 lg:py-32">
+        <div className="max-w-2xl">
+          {home.heroShowRating && rating?.value ? (
+            <div className="mb-6 inline-flex items-center gap-2.5 rounded-full bg-white/12 px-4 py-2 backdrop-blur">
+              <Stars value={rating.value} size={17} />
+              <span className="text-sm font-medium text-white">
+                {rating.value}
+                {rating.count ? ` · ${rating.count} ${rating.source || ''} reviews`.trimEnd() : ''}
+              </span>
+            </div>
+          ) : null}
 
-      {/* Content */}
-      <div className="relative z-10 mx-auto max-w-4xl px-6 text-center text-white">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-          {heroHeading || businessName || 'Welcome'}
-        </h1>
-        {heroSubheading && (
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-white/90 sm:text-xl">
-            {heroSubheading}
-          </p>
-        )}
+          <h1 className="text-4xl font-extrabold leading-[1.08] text-white sm:text-5xl lg:text-6xl">
+            {home.heroHeadline}
+          </h1>
+
+          {home.heroSubheadline && (
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-100/90 sm:text-xl">
+              {home.heroSubheadline}
+            </p>
+          )}
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            {tel && (
+              <a href={tel} className="btn btn-accent text-lg">
+                <PhoneIcon className="h-5 w-5" />
+                {primaryLabel}
+              </a>
+            )}
+            <a href="#contact" className="btn btn-on-dark text-lg">
+              {secondaryLabel}
+            </a>
+          </div>
+
+          {chips.length > 0 && (
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2.5">
+              {chips.map((chip, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm font-medium text-slate-100">
+                  {i === 1 ? (
+                    <ShieldCheckIcon className="h-5 w-5 text-[color:var(--color-accent)]" />
+                  ) : (
+                    <CheckIcon className="h-5 w-5 text-[color:var(--color-accent)]" />
+                  )}
+                  {chip}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </section>
   )
 }
+
+export default Hero

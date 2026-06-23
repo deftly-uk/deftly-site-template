@@ -1,339 +1,301 @@
-/**
- * Seed script — populates the CMS from site-content.json
- *
- * Usage:
- *   npx tsx src/seed/index.ts
- *   npx tsx src/seed/index.ts --environment production
- *
- * Requirements (from Bracken + Wilding deployment lessons):
- * - Idempotent: upsert pattern, running twice doesn't create duplicates
- * - Targets production by default
- * - Uploads images to Media collection (→ Vercel Blob)
- * - Logs what it does
- */
-
-import { readFileSync, existsSync } from 'node:fs'
 import { getPayload } from 'payload'
-import { fileURLToPath } from 'url'
-import path from 'path'
-import { uploadMedia } from './upload-media'
+import type { Payload } from 'payload'
 
-const filename = fileURLToPath(import.meta.url)
-const dirname = path.dirname(filename)
+import config from '../payload.config'
+import { heading, paragraph, richText } from './lexical'
+import { upsertImage, type SeedImageSpec } from './images'
 
-// ---------------------------------------------------------------------------
-// Parse args
-// ---------------------------------------------------------------------------
-const args = process.argv.slice(2)
-const envFlag = args.includes('--environment')
-  ? args[args.indexOf('--environment') + 1]
-  : 'production'
-
-console.log(`\nSeed script — environment: ${envFlag}\n`)
-
-// ---------------------------------------------------------------------------
-// Load site-content.json
-// ---------------------------------------------------------------------------
-const contentPath = path.resolve(process.cwd(), 'site-content.json')
-
-if (!existsSync(contentPath)) {
-  console.error('Error: site-content.json not found in project root.')
-  console.error('Create it with your business content before running seed.')
-  process.exit(1)
+/* ---------------------------------------------------------------- image specs */
+const HERO: SeedImageSpec = {
+  key: 'hero',
+  filename: 'seed-hero.jpg',
+  alt: 'Plumbing and heating work in a Harrogate home',
+  width: 1920,
+  height: 1080,
+  variant: 'hero',
+}
+const ABOUT: SeedImageSpec = {
+  key: 'about',
+  filename: 'seed-about.jpg',
+  alt: 'Ashworth Plumbing & Heating engineer at work',
+  width: 1280,
+  height: 960,
+  variant: 'about',
 }
 
-interface SiteContent {
-  settings?: Record<string, unknown>
-  services?: Array<Record<string, unknown>>
-  testimonials?: Array<Record<string, unknown>>
-  gallery?: Array<Record<string, unknown>>
-  images?: Record<string, string>
-}
+/* ----------------------------------------------------------------- collections */
+const SERVICES = [
+  {
+    title: 'Boiler Installation & Repair',
+    icon: 'flame',
+    order: 1,
+    summary:
+      'New boiler installs, repairs and annual servicing from a Gas Safe registered engineer. Fixed quotes on trusted brands.',
+  },
+  {
+    title: 'Central Heating',
+    icon: 'radiator',
+    order: 2,
+    summary:
+      'Radiator upgrades, power flushing, smart thermostats and full central heating systems designed around your home.',
+  },
+  {
+    title: 'Emergency Plumbing',
+    icon: 'shield',
+    order: 3,
+    summary:
+      'Burst pipes, leaks and breakdowns. Fast same-day response to stop the damage and put things right.',
+  },
+  {
+    title: 'Bathroom Installations',
+    icon: 'shower',
+    order: 4,
+    summary:
+      'Watertight, beautifully finished bathrooms fitted end to end — from a simple swap to a full refit.',
+  },
+  {
+    title: 'Leaks & Repairs',
+    icon: 'droplet',
+    order: 5,
+    summary:
+      'Dripping taps, hidden leaks and dodgy plumbing tracked down and fixed properly — first time.',
+  },
+  {
+    title: 'Landlord Gas Safety',
+    icon: 'gauge',
+    order: 6,
+    summary:
+      'CP12 gas safety certificates and annual servicing to keep your tenants safe and you compliant.',
+  },
+]
 
-const content: SiteContent = JSON.parse(readFileSync(contentPath, 'utf-8'))
-const stats = { media: 0, services: 0, testimonials: 0, gallery: 0 }
+const TESTIMONIALS = [
+  {
+    authorName: 'Sarah M.',
+    area: 'Harrogate',
+    jobType: 'Boiler replacement',
+    rating: 5,
+    order: 1,
+    quote:
+      'Our boiler packed in over a cold weekend and Ashworth had a new one fitted by Monday lunchtime. Tidy, polite and the price they quoted was the price we paid.',
+  },
+  {
+    authorName: 'James T.',
+    area: 'Knaresborough',
+    jobType: 'Full bathroom refit',
+    rating: 5,
+    order: 2,
+    quote:
+      'They refitted our family bathroom start to finish. Brilliant workmanship, kept us updated every day, and left the house spotless. Couldn’t recommend them more.',
+  },
+  {
+    authorName: 'Priya K.',
+    area: 'Ripon',
+    jobType: 'Emergency leak repair',
+    rating: 5,
+    order: 3,
+    quote:
+      'Came out within the hour when we had water coming through the ceiling. Found the leak fast, sorted it, and talked us through exactly what had happened. Lifesavers.',
+  },
+]
 
-// ---------------------------------------------------------------------------
-// Init Payload
-// ---------------------------------------------------------------------------
-const configPath = path.resolve(dirname, '..', 'payload.config.ts')
-const configModule = await import(configPath)
-const payload = await getPayload({ config: configModule.default })
-
-// ---------------------------------------------------------------------------
-// Step 1: Upload images
-// ---------------------------------------------------------------------------
-console.log('▸ Uploading images...')
-
-const mediaMap: Record<string, { id: number | string; url?: string }> = {}
-
-// Upload named images (hero, logo, about)
-if (content.images) {
-  for (const [key, filename] of Object.entries(content.images)) {
-    if (!filename) continue
-    const result = await uploadMedia(payload, filename, key)
-    if (result) {
-      mediaMap[key] = result
-      stats.media++
-    }
+/* ----------------------------------------------------------------------- helpers */
+const upsertByField = async (
+  payload: Payload,
+  collection: 'services' | 'testimonials',
+  field: string,
+  value: string,
+  data: Record<string, unknown>,
+): Promise<void> => {
+  const found = await payload.find({
+    collection,
+    where: { [field]: { equals: value } },
+    limit: 1,
+    depth: 0,
+  })
+  if (found.docs[0]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await payload.update({ collection, id: found.docs[0].id, data } as any)
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await payload.create({ collection, data } as any)
   }
 }
 
-// Upload service images
-if (content.services) {
-  for (const service of content.services) {
-    const img = service.image as string | undefined
-    if (img) {
-      const result = await uploadMedia(payload, img, (service.title as string) || 'Service')
-      if (result) {
-        mediaMap[`service:${img}`] = result
-        stats.media++
-      }
-    }
-  }
-}
+/* -------------------------------------------------------------------------- seed */
+const seed = async (): Promise<void> => {
+  const payload = await getPayload({ config })
 
-// Upload gallery images
-if (content.gallery) {
-  for (const item of content.gallery) {
-    const img = item.image as string | undefined
-    if (img) {
-      const result = await uploadMedia(payload, img, (item.title as string) || 'Gallery')
-      if (result) {
-        mediaMap[`gallery:${img}`] = result
-        stats.media++
-      }
-    }
-  }
-}
-
-// Upload testimonial images
-if (content.testimonials) {
-  for (const item of content.testimonials) {
-    const img = item.image as string | undefined
-    if (img) {
-      const result = await uploadMedia(payload, img, (item.name as string) || 'Testimonial')
-      if (result) {
-        mediaMap[`testimonial:${img}`] = result
-        stats.media++
-      }
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Step 2: Update SiteSettings global
-// ---------------------------------------------------------------------------
-console.log('\n▸ Updating SiteSettings...')
-
-if (content.settings) {
-  const settingsData: Record<string, unknown> = { ...content.settings }
-
-  // Resolve image references to media IDs
-  if (mediaMap.hero) settingsData.heroImage = mediaMap.hero.id
-  if (mediaMap.logo) settingsData.logo = mediaMap.logo.id
-  if (mediaMap.about) settingsData.aboutImage = mediaMap.about.id
-
-  // Handle richText fields — convert plain strings to Lexical format
-  if (typeof settingsData.aboutText === 'string') {
-    settingsData.aboutText = stringToLexical(settingsData.aboutText as string)
+  // 1) Admin user (idempotent) — becomes the CMS login.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@example.com'
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'change-me-strong'
+  const existingUser = await payload.find({
+    collection: 'users',
+    where: { email: { equals: adminEmail } },
+    limit: 1,
+  })
+  if (!existingUser.docs[0]) {
+    await payload.create({
+      collection: 'users',
+      data: { email: adminEmail, password: adminPassword, name: 'Site Owner' },
+    })
+    payload.logger.info(`Created admin user: ${adminEmail}`)
+  } else {
+    payload.logger.info(`Admin user already exists: ${adminEmail}`)
   }
 
+  // 2) Images → Vercel Blob (idempotent by filename).
+  const heroId = await upsertImage(payload, HERO)
+  const aboutId = await upsertImage(payload, ABOUT)
+  payload.logger.info(`Media ready (hero #${heroId}, about #${aboutId})`)
+
+  // 3) Services + testimonials.
+  for (const s of SERVICES) {
+    await upsertByField(payload, 'services', 'title', s.title, s)
+  }
+  for (const t of TESTIMONIALS) {
+    await upsertByField(payload, 'testimonials', 'authorName', t.authorName, t)
+  }
+  payload.logger.info(`Seeded ${SERVICES.length} services, ${TESTIMONIALS.length} testimonials`)
+
+  // 4) Site settings (the business identity + trust + legal + branding).
   await payload.updateGlobal({
     slug: 'site-settings',
-    data: settingsData,
+    data: {
+      businessName: 'Ashworth Plumbing & Heating',
+      legalName: 'Ashworth Plumbing & Heating Ltd',
+      tagline: 'Gas Safe plumbers & heating engineers in Harrogate',
+      tradeType: 'Plumber',
+      establishedYear: 2009,
+      phone: '01423555123',
+      phoneDisplay: '01423 555 123',
+      email: 'hello@ashworthplumbing.co.uk',
+      // Demo: routes test enquiries to the account owner so the email can be verified.
+      notificationEmail: process.env.CONTACT_TO_EMAIL_FALLBACK || 'hello@ashworthplumbing.co.uk',
+      address: {
+        line1: 'Unit 4, Claro Court Business Centre',
+        city: 'Harrogate',
+        county: 'North Yorkshire',
+        postcode: 'HG1 4BA',
+        country: 'United Kingdom',
+      },
+      areasServed: [
+        { area: 'Harrogate' },
+        { area: 'Knaresborough' },
+        { area: 'Ripon' },
+        { area: 'Wetherby' },
+        { area: 'Boroughbridge' },
+        { area: 'Pannal' },
+      ],
+      openingHours: [
+        { days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], opens: '08:00', closes: '18:00', closed: false },
+        { days: ['Saturday'], opens: '09:00', closes: '13:00', closed: false },
+        { days: ['Sunday'], closed: true },
+      ],
+      emergencyText: '24/7 emergency call-outs for existing customers',
+      rating: { value: 4.9, count: 127, source: 'Google' },
+      accreditations: [
+        { name: 'Gas Safe Registered', registrationNumber: '123456' },
+        { name: 'Which? Trusted Trader' },
+        { name: 'CIPHE Member' },
+      ],
+      insuranceText: 'Fully insured · £5m public liability',
+      guaranteeText: '12-month workmanship guarantee',
+      companyNumber: '08123456',
+      vatNumber: 'GB 312 4567 89',
+      registeredOffice: 'Unit 4, Claro Court Business Centre, Harrogate, North Yorkshire, HG1 4BA',
+      privacyPolicy: richText([
+        heading('Privacy Policy'),
+        paragraph(
+          'Ashworth Plumbing & Heating Ltd ("we", "us") is committed to protecting your privacy. This policy explains what personal data we collect through this website and how we use it.',
+        ),
+        heading('What we collect', 'h3'),
+        paragraph(
+          'When you submit our contact form we collect your name, phone number, postcode and any message you send, so we can respond to your enquiry and arrange work.',
+        ),
+        heading('How we use it', 'h3'),
+        paragraph(
+          'We use your details only to contact you about your enquiry and to provide our services. We do not sell your data. We keep enquiry records for as long as needed to provide our services and meet our legal obligations.',
+        ),
+        heading('Your rights', 'h3'),
+        paragraph(
+          'Under UK GDPR you can ask us for a copy of your data, ask us to correct or delete it, or object to how we use it. To do so, contact us using the details on this site. You can also complain to the Information Commissioner’s Office (ICO).',
+        ),
+      ]),
+      brandColor: '#173A5E',
+      accentColor: '#E0620D',
+      defaultMetaTitle: 'Ashworth Plumbing & Heating | Gas Safe Plumbers in Harrogate',
+      defaultMetaDescription:
+        'Trusted Gas Safe plumbers and heating engineers in Harrogate & North Yorkshire. Boiler repairs, installations, bathrooms and emergency plumbing. Free quotes — call today.',
+      ogImage: heroId,
+    },
   })
 
-  console.log('  [ok] SiteSettings updated')
-}
-
-// ---------------------------------------------------------------------------
-// Step 3: Upsert Services
-// ---------------------------------------------------------------------------
-console.log('\n▸ Seeding services...')
-
-if (content.services) {
-  for (let i = 0; i < content.services.length; i++) {
-    const service = content.services[i]
-    const title = service.title as string
-
-    // Check for existing by title (upsert)
-    const existing = await payload.find({
-      collection: 'services',
-      where: { title: { equals: title } },
-      limit: 1,
-    })
-
-    const data: Record<string, unknown> = {
-      title,
-      sortOrder: service.sortOrder ?? i,
-    }
-
-    if (typeof service.description === 'string') {
-      data.description = stringToLexical(service.description)
-    } else if (service.description) {
-      data.description = service.description
-    }
-
-    const imgKey = `service:${service.image}`
-    if (mediaMap[imgKey]) {
-      data.image = mediaMap[imgKey].id
-    }
-
-    if (service.icon) data.icon = service.icon
-
-    if (existing.docs.length > 0) {
-      await payload.update({
-        collection: 'services',
-        id: existing.docs[0].id,
-        data,
-      })
-      console.log(`  [update] ${title}`)
-    } else {
-      await payload.create({
-        collection: 'services',
-        data,
-      })
-      console.log(`  [create] ${title}`)
-    }
-    stats.services++
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Step 4: Upsert Testimonials
-// ---------------------------------------------------------------------------
-console.log('\n▸ Seeding testimonials...')
-
-if (content.testimonials) {
-  for (let i = 0; i < content.testimonials.length; i++) {
-    const testimonial = content.testimonials[i]
-    const name = testimonial.name as string
-
-    const existing = await payload.find({
-      collection: 'testimonials',
-      where: { name: { equals: name } },
-      limit: 1,
-    })
-
-    const data: Record<string, unknown> = {
-      name,
-      quote: testimonial.quote,
-      sortOrder: testimonial.sortOrder ?? i,
-    }
-
-    if (testimonial.role) data.role = testimonial.role
-    if (testimonial.rating) data.rating = testimonial.rating
-
-    const imgKey = `testimonial:${testimonial.image}`
-    if (mediaMap[imgKey]) {
-      data.image = mediaMap[imgKey].id
-    }
-
-    if (existing.docs.length > 0) {
-      await payload.update({
-        collection: 'testimonials',
-        id: existing.docs[0].id,
-        data,
-      })
-      console.log(`  [update] ${name}`)
-    } else {
-      await payload.create({
-        collection: 'testimonials',
-        data,
-      })
-      console.log(`  [create] ${name}`)
-    }
-    stats.testimonials++
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Step 5: Upsert Gallery
-// ---------------------------------------------------------------------------
-console.log('\n▸ Seeding gallery...')
-
-if (content.gallery) {
-  for (let i = 0; i < content.gallery.length; i++) {
-    const item = content.gallery[i]
-    const title = (item.title as string) || `Gallery ${i + 1}`
-
-    const existing = await payload.find({
-      collection: 'gallery',
-      where: { title: { equals: title } },
-      limit: 1,
-    })
-
-    const data: Record<string, unknown> = {
-      title,
-      sortOrder: item.sortOrder ?? i,
-    }
-
-    if (item.category) data.category = item.category
-    if (item.description) data.description = item.description
-
-    const imgKey = `gallery:${item.image}`
-    if (mediaMap[imgKey]) {
-      data.image = mediaMap[imgKey].id
-    }
-
-    if (existing.docs.length > 0) {
-      await payload.update({
-        collection: 'gallery',
-        id: existing.docs[0].id,
-        data,
-      })
-      console.log(`  [update] ${title}`)
-    } else {
-      await payload.create({
-        collection: 'gallery',
-        data,
-      })
-      console.log(`  [create] ${title}`)
-    }
-    stats.gallery++
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Summary
-// ---------------------------------------------------------------------------
-console.log(`
----
-Seed complete.
-  Media uploaded: ${stats.media}
-  Services: ${stats.services}
-  Testimonials: ${stats.testimonials}
-  Gallery: ${stats.gallery}
-`)
-
-process.exit(0)
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Convert a plain string to Payload's Lexical richText format.
- * Splits on double-newlines to create paragraphs.
- */
-function stringToLexical(text: string) {
-  const paragraphs = text.split(/\n\n+/).filter(Boolean)
-  return {
-    root: {
-      type: 'root',
-      children: paragraphs.map((p) => ({
-        type: 'paragraph',
-        children: [{ type: 'text', text: p.trim(), version: 1 }],
-        direction: 'ltr' as const,
-        format: '' as const,
-        indent: 0,
-        version: 1,
-      })),
-      direction: 'ltr' as const,
-      format: '' as const,
-      indent: 0,
-      version: 1,
+  // 5) Homepage content.
+  await payload.updateGlobal({
+    slug: 'home-page',
+    data: {
+      heroHeadline: 'Trusted plumbers & heating engineers in Harrogate',
+      heroSubheadline:
+        'Gas Safe registered, fully insured and rated 4.9 by over 120 local customers. Fast, tidy work with fixed quotes and no call-out fee.',
+      heroImage: heroId,
+      heroPrimaryCtaLabel: 'Call now',
+      heroSecondaryCtaLabel: 'Get a free quote',
+      heroShowRating: true,
+      trustStripEnabled: true,
+      trustHighlights: [
+        { text: 'No call-out fee' },
+        { text: 'Free no-obligation quotes' },
+        { text: 'Same-day emergency response' },
+      ],
+      servicesHeading: 'Plumbing & heating services',
+      servicesIntro:
+        'From a dripping tap to a full boiler installation — one local team you can trust.',
+      aboutHeading: 'Local, Gas Safe, and properly insured',
+      aboutBody: richText([
+        paragraph(
+          'Ashworth Plumbing & Heating is a family-run team based in Harrogate, serving homeowners and landlords across North Yorkshire since 2009. Every engineer is Gas Safe registered, and every job — big or small — is done to the same high standard.',
+        ),
+        paragraph(
+          'We believe in fixed, upfront pricing and tidy, respectful work. No surprises, no mess left behind, and a 12-month guarantee on everything we do.',
+        ),
+      ]),
+      aboutImage: aboutId,
+      aboutPoints: [
+        { text: 'Gas Safe registered engineers' },
+        { text: 'Upfront fixed pricing — no surprises' },
+        { text: 'Tidy, respectful and on time' },
+        { text: '12-month workmanship guarantee' },
+        { text: 'Family-run since 2009' },
+        { text: 'Covering Harrogate & North Yorkshire' },
+      ],
+      testimonialsHeading: 'What our customers say',
+      testimonialsIntro: 'Real reviews from homeowners across Harrogate & North Yorkshire.',
+      contactHeading: 'Get a free, no-obligation quote',
+      contactBody:
+        'Tell us what you need and we’ll get back to you fast — usually within the hour during working hours.',
+      contactReassurances: [
+        { text: 'No call-out fee' },
+        { text: 'Free fixed quotes' },
+        { text: 'We reply within the hour' },
+        { text: 'Gas Safe registered' },
+      ],
+      contactSubmitLabel: 'Request a callback',
+      contactSuccessMessage:
+        'Thanks — we’ve got your details and will call you back shortly. For anything urgent, call us on 01423 555 123.',
+      metaTitle: 'Gas Safe Plumbers & Heating Engineers in Harrogate',
+      metaDescription:
+        'Boiler repairs, installations, bathrooms and emergency plumbing in Harrogate & North Yorkshire. Gas Safe registered, fully insured, free quotes.',
+      ogImage: heroId,
     },
-  }
+  })
+
+  payload.logger.info('✅ Seed complete.')
 }
+
+seed()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error('Seed failed:', err)
+    process.exit(1)
+  })

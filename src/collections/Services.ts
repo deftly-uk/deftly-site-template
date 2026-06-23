@@ -1,60 +1,63 @@
 import type { CollectionConfig } from 'payload'
 
+import { adminsOnly, anyone } from '../access'
+
+/** A service the business offers. Rendered as a card in the Services grid. */
 export const Services: CollectionConfig = {
   slug: 'services',
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'sortOrder', 'updatedAt'],
+    defaultColumns: ['title', 'summary', 'order'],
+    group: 'Content',
+    description: 'The services you offer. These appear as cards on the homepage.',
   },
+  access: {
+    read: anyone,
+    create: adminsOnly,
+    update: adminsOnly,
+    delete: adminsOnly,
+  },
+  defaultSort: 'order',
   fields: [
     {
       name: 'title',
       type: 'text',
       required: true,
+      label: 'Service name',
     },
     {
-      name: 'slug',
-      type: 'text',
-      admin: {
-        position: 'sidebar',
-      },
-      hooks: {
-        beforeValidate: [
-          ({ value, data }) => {
-            if (!value && data?.title) {
-              return data.title
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/(^-|-$)/g, '')
-            }
-            return value
-          },
-        ],
-      },
+      name: 'summary',
+      type: 'textarea',
+      required: true,
+      label: 'Short description (1–2 sentences shown on the card)',
     },
     {
-      name: 'description',
-      type: 'richText',
+      name: 'icon',
+      type: 'select',
+      label: 'Icon',
+      defaultValue: 'wrench',
+      options: [
+        { label: 'Wrench (general / repairs)', value: 'wrench' },
+        { label: 'Flame (heating / boilers)', value: 'flame' },
+        { label: 'Droplet (plumbing / leaks)', value: 'droplet' },
+        { label: 'Radiator (radiators / central heating)', value: 'radiator' },
+        { label: 'Shower (bathrooms)', value: 'shower' },
+        { label: 'Gauge (servicing / safety checks)', value: 'gauge' },
+        { label: 'Shield (emergency / cover)', value: 'shield' },
+        { label: 'Bolt (power / electrics)', value: 'bolt' },
+      ],
     },
     {
       name: 'image',
       type: 'upload',
       relationTo: 'media',
+      label: 'Photo (optional — overrides the icon if set)',
     },
     {
-      name: 'icon',
-      type: 'text',
-      admin: {
-        description: 'Optional icon identifier for icon-based layouts',
-      },
-    },
-    {
-      name: 'sortOrder',
+      name: 'order',
       type: 'number',
+      label: 'Display order (lower shows first)',
       defaultValue: 0,
-      admin: {
-        position: 'sidebar',
-      },
     },
   ],
 }

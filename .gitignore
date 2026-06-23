@@ -4,20 +4,27 @@ node_modules/
 # Next.js
 .next/
 out/
+build/
+next-env.d.ts
 
 # Vercel
 .vercel/
 
-# Environment
-.env*
-.env.production
+# Environment — never commit secrets
+.env
+.env.*
+!.env.example
 
-# Images — not committed to git
-# Images live in CMS/Vercel Blob, not in the repo
-raw-images/
+# Images — live in Vercel Blob, never in git (Constitution Article III)
 public/uploads/
+raw-images/
+seed-cache/
+
+# Old scaffold, kept locally for reference only
+_graveyard/
 
 # Misc
 .DS_Store
 *.tsbuildinfo
-next-env.d.ts
+*.log
+npm-debug.log*

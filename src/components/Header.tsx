@@ -1,91 +1,64 @@
-'use client'
-
-import React, { useState } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
+import Link from 'next/link'
+import React from 'react'
 
-interface NavLink {
-  label: string
-  href: string
-  id?: string
-}
+import type { SiteSetting } from '@/payload-types'
+import { getImage } from '@/lib/media'
+import { phoneLabel, telHref } from '@/lib/format'
 
-interface HeaderProps {
-  settings: {
-    businessName?: string | null
-    logo?: { url?: string; alt?: string } | null
-    navLinks?: NavLink[] | null
-  }
-}
+import { PhoneIcon } from './icons'
 
-export function Header({ settings }: HeaderProps) {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const { businessName, logo, navLinks } = settings
+/** Sticky site header: brand + always-visible click-to-call + quote CTA (Article I / conversion). */
+export const Header: React.FC<{ settings: SiteSetting }> = ({ settings }) => {
+  const logo = getImage(settings.logo, 'card')
+  const label = phoneLabel(settings)
+  const tel = telHref(settings.phone)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-3">
-          {logo?.url && (
+    <header className="sticky top-0 z-50 border-b border-[color:var(--color-line)] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <div className="container-x flex items-center justify-between gap-4 py-3">
+        <Link href="/" className="flex items-center gap-2.5" aria-label={settings.businessName}>
+          {logo ? (
             <Image
               src={logo.url}
-              alt={logo.alt || businessName || 'Logo'}
-              width={40}
-              height={40}
-              className="h-10 w-auto"
+              alt={logo.alt || settings.businessName}
+              width={logo.width}
+              height={logo.height}
+              priority
+              className="h-10 w-auto md:h-11"
             />
+          ) : (
+            <span className="font-[family-name:var(--font-heading)] text-lg font-extrabold leading-tight tracking-tight text-[color:var(--color-brand)] md:text-xl">
+              {settings.businessName}
+            </span>
           )}
-          <span className="text-xl font-bold tracking-tight">
-            {businessName || 'Business Name'}
-          </span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-8 md:flex">
-          {navLinks?.map((link) => (
-            <Link
-              key={link.id || link.href}
-              href={link.href}
-              className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+        <div className="flex items-center gap-2 md:gap-4">
+          {tel && (
+            <a
+              href={tel}
+              className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[color:var(--color-brand)] transition-colors hover:bg-[color:var(--color-surface)]"
+              aria-label={`Call ${settings.businessName} on ${label}`}
             >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Mobile toggle */}
-        <button
-          type="button"
-          className="inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current md:hidden"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-expanded={mobileOpen}
-          aria-label="Toggle navigation menu"
-        >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            {mobileOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            )}
-          </svg>
-        </button>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--color-surface)] text-[color:var(--color-accent)]">
+                <PhoneIcon className="h-[18px] w-[18px]" />
+              </span>
+              <span className="hidden text-left leading-tight sm:block">
+                <span className="block text-xs font-medium text-[color:var(--color-muted)]">
+                  Call us today
+                </span>
+                <span className="block text-[1.0625rem] font-bold tracking-tight">{label}</span>
+              </span>
+            </a>
+          )}
+          <a href="#contact" className="btn btn-accent hidden h-11 min-h-0 px-5 text-base md:inline-flex">
+            {settings.tradeType ? 'Get a free quote' : 'Get a quote'}
+          </a>
+        </div>
       </div>
-
-      {/* Mobile nav */}
-      {mobileOpen && (
-        <nav className="border-t border-gray-100 bg-white px-6 py-4 md:hidden">
-          {navLinks?.map((link) => (
-            <Link
-              key={link.id || link.href}
-              href={link.href}
-              className="block py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-              onClick={() => setMobileOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-      )}
     </header>
   )
 }
+
+export default Header

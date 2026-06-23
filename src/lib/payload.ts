@@ -1,6 +1,15 @@
-import { getPayload as getPayloadInstance } from 'payload'
-import configPromise from '@payload-config'
+import config from '@payload-config'
+import { getPayload, type Payload } from 'payload'
 
-export async function getPayload() {
-  return getPayloadInstance({ config: configPromise })
+/**
+ * Single cached Payload instance for the whole app (Article V: thin integration).
+ * Every page queries the CMS through this — content is never hardcoded (Article I).
+ */
+let cached: Promise<Payload> | null = null
+
+export const getPayloadClient = (): Promise<Payload> => {
+  if (!cached) {
+    cached = getPayload({ config })
+  }
+  return cached
 }

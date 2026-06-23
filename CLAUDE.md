@@ -4,19 +4,39 @@ Guidance for Claude Code working in this repository.
 
 ## Status & ground truth (read first)
 
-This is the **base template every Deftly client site is cloned from** — but as of June 2026 it's an **unstyled, single-commit scaffold that has never been deployed live**. The CMS-first wiring is in place (pages query Payload, seed script present); the look-and-feel and a proven deploy flow are not. No real customer site has been generated from it yet.
+As of June 2026 this is a **live, deployed, CMS-first single-tenant trade site** (Phase 1
+of the BUILD-PLAN — complete). It replaced the previous unstyled scaffold, which is kept
+locally in `_graveyard/` for reference only (git-ignored).
 
-When asked how it works, **read `src/` and the scripts**, not just the README. Known gaps and the platform-wide plan live in the master plan (canonical, written from the code):
-`https://github.com/hm293/deftly-orchestrator/blob/main/docs/plans/2026-06-14-deftly-platform-master-plan.md`
+**The law is [`CONSTITUTION.md`](./CONSTITUTION.md).** Article I above all: nothing a
+customer sees is hardcoded — every word/image is read from Payload at runtime. Before
+adding any content to a component, ask "can the customer edit this in the admin panel?"
+If not, it belongs in the CMS (a `SiteSettings`/`HomePage` field or a collection).
 
-## What this repo is
+## Architecture
 
-Next.js 16 + Payload CMS v3 template: Services / Testimonials / Gallery / Media collections, a SiteSettings global, Vercel Blob media, Neon Postgres, and a seed script that populates content from `site-content.json`.
+- `src/app/(frontend)/` — the public site. Own root `layout.tsx` (fonts, header/footer,
+  CMS theme vars). `page.tsx` is `force-dynamic` and queries the CMS each request, so
+  edits show on reload. `/privacy` renders `SiteSettings.privacyPolicy`.
+- `src/app/(payload)/` — Payload admin (`/admin`) + REST/GraphQL API (`/api/*`). Own root
+  layout. **There is no `src/app/layout.tsx`** — each route group has its own (intentional).
+- `src/collections/` + `src/globals/` — the content model (the single source of truth).
+- `src/lib/queries.ts` — all CMS reads (React-cached). `src/lib/seo.ts` — metadata + JSON-LD.
+- `src/components/sections/` — one component per homepage section, all CMS-driven.
+- `src/seed/` — idempotent seed (demo content + admin user + placeholder media → Blob).
 
-## Where it sits in the platform
+## Conventions / traps (learned the hard way)
 
-The `deftly-orchestrator` engine clones this repo per customer, restyles it via Claude Code, seeds content, and deploys it. Making this a real, styled template is the **#1 blocker** for that engine.
+- DB adapter is `@payloadcms/db-vercel-postgres` with `push: false` — **use migrations**
+  (`npm run migrate:create <name>`), never schema push.
+- Media uses Vercel Blob with `disablePayloadAccessControl: true` (public CDN URLs). Never
+  commit image files (Article III).
+- Run `payload generate:importmap` after changing admin components, or `/admin` renders blank.
+- LocalBusiness JSON-LD must **never** include `aggregateRating`/`review` (Google policy);
+  ratings are display-only (`SiteSettings.rating`).
+- After editing the content model: `npm run generate:types`, then `npm run migrate:create`.
 
-## Next steps
+## Definition of done for any change
 
-Style it into a sellable template; prove the seed + go-live flow end-to-end (add the `/api/seed` route the orchestrator calls); deploy one real site from it. Note: this repo now lives under the `deftly-uk` org (older docs may say `hm293`).
+Editability is proven, not assumed (Article II): if you touch content rendering, verify a
+CMS edit propagates to the live page on reload before calling it done.
