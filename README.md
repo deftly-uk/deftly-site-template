@@ -6,6 +6,10 @@ word and image a customer sees is editable from their admin panel — nothing is
 
 > Governed by [`CONSTITUTION.md`](./CONSTITUTION.md). Article I above all: **if a customer
 > can see it, they can change it.**
+>
+> Current status, key decisions, known rough edges, and the full roadmap (Phase 2 features,
+> Phase 3 multi-tenant, and engineering to-dos) live in
+> [`PRODUCT-BACKLOG.md`](./PRODUCT-BACKLOG.md).
 
 ## Stack
 
