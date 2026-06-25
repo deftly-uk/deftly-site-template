@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, authenticated } from '../access/tenant'
+import { authenticated, publicTenantRead } from '../access/tenant'
 import { enforceTenantWrite } from '../access/enforce-tenant-write'
 
 /** A service the business offers. Rendered as a card in the Services grid. */
@@ -13,7 +13,7 @@ export const Services: CollectionConfig = {
     description: 'The services you offer. These appear as cards on the homepage.',
   },
   access: {
-    read: anyone,
+    read: publicTenantRead,
     create: authenticated,
     update: authenticated,
     delete: authenticated,

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, authenticated } from '../access/tenant'
+import { authenticated, publicTenantRead } from '../access/tenant'
 import { enforceTenantWrite } from '../access/enforce-tenant-write'
 
 /**
@@ -20,7 +20,7 @@ export const HomePage: CollectionConfig = {
     description: 'The headlines, text and images for each section of your homepage.',
   },
   access: {
-    read: anyone,
+    read: publicTenantRead,
     create: authenticated,
     update: authenticated,
     delete: authenticated,

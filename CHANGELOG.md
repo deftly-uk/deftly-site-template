@@ -35,8 +35,28 @@ top. Build + tested locally only; deploy/provisioning is a later live step.
   tenant, loads content, and advances `queued → building → ready` (or `→ failed`), with
   a placeholder preview URL. `npm run build:worker` drains the queue.
 
+### Hardened (post-review) — tenant isolation & production safety
+- **Anonymous API reads can no longer cross tenants.** Public-readable collections
+  (`site-settings`, `home-page`, `services`, `testimonials`, `media`) used `read: anyone`,
+  so a raw `/api/...` call returned every tenant's rows. New `publicTenantRead` scopes
+  anonymous reads to the request hostname's tenant; the website is unaffected (it reads
+  server-side with `overrideAccess`). Pure host parsing moved to `src/lib/host.ts`.
+- **Public enquiry creation can no longer pick a tenant.** `enquiries` create dropped from
+  `anyone` to `authenticated`; the public form's server action now creates with
+  `overrideAccess` after resolving the tenant from the hostname, so a direct API call
+  cannot insert a lead under another tenant.
+- **The `x-tenant-subdomain` override is no longer trusted in production** (dev/test only,
+  or behind `ALLOW_TENANT_HEADER_OVERRIDE=true` for trusted preview envs).
+- **Suspended tenants are no longer served publicly** (treated as unresolved → 404).
+- **Existing users can be promoted to platform operator** by the seed/provisioner
+  (`upsertTenantAdmin` now honours `isSuperAdmin` on update; never demotes).
+- **Stranded build jobs recover.** `recoverStaleBuildJobs` requeues any job left in
+  `building` past `BUILD_JOB_STALE_MS` (default 15 min); the worker runs it before each
+  claim, so a crashed worker no longer strands a job forever.
+- Pinned `@payloadcms/plugin-multi-tenant` to exact `3.85.1`; fixed migration whitespace.
+
 ### Tooling
-- Vitest harness on a throwaway Docker Postgres (`npm test`, fully self-contained); 32
+- Vitest harness on a throwaway Docker Postgres (`npm test`, fully self-contained); 35
   tests green. Production migration `20260625_173116_multitenant_engine` generated.
 
 ## [2.0.0] — 2026-06-23 — Phase 1: first real, editable template

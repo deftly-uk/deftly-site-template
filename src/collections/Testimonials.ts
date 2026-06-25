@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, authenticated } from '../access/tenant'
+import { authenticated, publicTenantRead } from '../access/tenant'
 import { enforceTenantWrite } from '../access/enforce-tenant-write'
 
 /**
@@ -17,7 +17,7 @@ export const Testimonials: CollectionConfig = {
     description: 'Reviews from your customers. Shown on the homepage.',
   },
   access: {
-    read: anyone,
+    read: publicTenantRead,
     create: authenticated,
     update: authenticated,
     delete: authenticated,

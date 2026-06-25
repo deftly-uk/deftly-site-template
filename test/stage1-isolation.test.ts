@@ -3,6 +3,7 @@ import type { Payload } from 'payload'
 
 import type { Tenant, User } from '@/payload-types'
 import { tenantMediaPrefix } from '@/lib/storage'
+import { publicTenantRead } from '@/access/tenant'
 
 import { getTestPayload, makeMedia, makeTenant, makeTenantAdmin, seedMinimalContent, uniqueSub } from './helpers/payload'
 
@@ -152,6 +153,36 @@ describe('Stage 1: tenant isolation', () => {
       const tenantId = typeof doc.tenant === 'object' ? doc.tenant?.id : doc.tenant
       expect(tenantId).toBe(tenantA.id)
     }
+  })
+
+  it('scopes ANONYMOUS public API reads to the request host\'s tenant', async () => {
+    // The raw REST/GraphQL API: an unauthenticated read must be confined to the tenant
+    // that owns the request hostname — never able to list across tenants.
+    const reqFor = (host?: string, user?: User) =>
+      ({ req: { payload, user, headers: new Headers(host ? { host } : {}) } }) as unknown as Parameters<typeof publicTenantRead>[0]
+
+    // Authenticated callers defer to the multi-tenant plugin (which scopes them).
+    expect(await publicTenantRead(reqFor(undefined, adminA))).toBe(true)
+
+    // Anonymous on A's host → a filter that only ever returns A's rows (and vice versa).
+    expect(await publicTenantRead(reqFor(`${tenantA.subdomain}.localhost:3000`))).toEqual({ tenant: { equals: tenantA.id } })
+    expect(await publicTenantRead(reqFor(`${tenantB.subdomain}.localhost:3000`))).toEqual({ tenant: { equals: tenantB.id } })
+
+    // An unknown host, or none at all, gets no access (not a cross-tenant dump).
+    expect(await publicTenantRead(reqFor('does-not-exist.localhost:3000'))).toBe(false)
+    expect(await publicTenantRead(reqFor())).toBe(false)
+  })
+
+  it('blocks ANONYMOUS direct API creation of an enquiry (no tenant spoofing)', async () => {
+    // A malicious direct POST cannot insert a lead — even into its "own" tenant, let alone
+    // pick another tenant's id. Public submissions only flow through the server action.
+    await expect(
+      payload.create({
+        collection: 'enquiries',
+        data: { tenant: tenantB.id, name: 'spoof', phone: '07000000000', status: 'new', source: 'website' },
+        overrideAccess: false,
+      }),
+    ).rejects.toThrow()
   })
 
   it('each tenant CAN fully manage their own content (edits are independent)', async () => {

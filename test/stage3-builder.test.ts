@@ -10,6 +10,7 @@ import {
   enqueueBuildJob,
   ensureBuildJobsTable,
   getBuildJob,
+  recoverStaleBuildJobs,
   retriggerBuildJob,
 } from '@/lib/queue/build-jobs'
 import { drainBuildQueue, runBuildOnce, subdomainForJob } from '@/lib/queue/worker'
@@ -108,6 +109,42 @@ describe('Stage 3: build worker', () => {
     await retriggerBuildJob(pool, job.id)
     const requeued = await getBuildJob(pool, job.id)
     expect(requeued?.status).toBe('queued')
+  })
+
+  it('recovers a job stranded in "building" by a crashed worker', async () => {
+    // Start from an empty queue so claim ordering is deterministic.
+    await drainBuildQueue(payload, pool)
+
+    // Simulate a worker that claimed a job then died: the row sits in `building`.
+    const job = await enqueueBuildJob(pool, { spec: specWith({ businessName: 'Stranded Plumbing Ltd' }), specVersion: SPEC_VERSION })
+    const claimed = await claimNextBuildJob(pool)
+    expect(claimed?.id).toBe(job.id)
+    // Back-date its start so it looks stale (older than the recovery threshold).
+    await pool.query(`update build_jobs set started_at = now() - interval '30 minutes' where id = $1`, [job.id])
+
+    const before = await getBuildJob(pool, job.id)
+    expect(before?.status).toBe('building')
+
+    const recovered = await recoverStaleBuildJobs(pool)
+    expect(recovered).toBeGreaterThanOrEqual(1)
+
+    const after = await getBuildJob(pool, job.id)
+    expect(after?.status).toBe('queued')
+    expect(after?.started_at).toBeNull()
+    expect(after?.attempts).toBe((before?.attempts ?? 1) + 1)
+
+    // A freshly-claimed job (recent started_at) must NOT be recovered. Remove the
+    // recovered job first so this claim deterministically picks the fresh one.
+    await pool.query(`delete from build_jobs where id = $1`, [job.id])
+    const fresh = await enqueueBuildJob(pool, { spec: specWith({ businessName: 'Fresh Plumbing Ltd' }), specVersion: SPEC_VERSION })
+    const freshClaimed = await claimNextBuildJob(pool)
+    expect(freshClaimed?.id).toBe(fresh.id)
+    await recoverStaleBuildJobs(pool)
+    const stillBuilding = await getBuildJob(pool, fresh.id)
+    expect(stillBuilding?.status).toBe('building')
+
+    // Clean up so the later drain-based tests start from a known state.
+    await pool.query(`delete from build_jobs where id = $1`, [fresh.id])
   })
 
   it('tenant isolation still holds for builder-created sites', async () => {

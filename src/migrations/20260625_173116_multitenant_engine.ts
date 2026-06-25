@@ -5,21 +5,21 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
    CREATE TYPE "public"."enum_tenants_status" AS ENUM('pending', 'active', 'suspended');
   CREATE TYPE "public"."enum_tenants_industry" AS ENUM('plumber', 'electrician', 'roofer', 'other');
   CREATE TABLE "tenants" (
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"name" varchar NOT NULL,
-  	"subdomain" varchar NOT NULL,
-  	"custom_domain" varchar,
-  	"status" "enum_tenants_status" DEFAULT 'pending' NOT NULL,
-  	"industry" "enum_tenants_industry" DEFAULT 'plumber' NOT NULL,
-  	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
-  	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+	"id" serial PRIMARY KEY NOT NULL,
+	"name" varchar NOT NULL,
+	"subdomain" varchar NOT NULL,
+	"custom_domain" varchar,
+	"status" "enum_tenants_status" DEFAULT 'pending' NOT NULL,
+	"industry" "enum_tenants_industry" DEFAULT 'plumber' NOT NULL,
+	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
   
   CREATE TABLE "users_tenants" (
-  	"_order" integer NOT NULL,
-  	"_parent_id" integer NOT NULL,
-  	"id" varchar PRIMARY KEY NOT NULL,
-  	"tenant_id" integer NOT NULL
+	"_order" integer NOT NULL,
+	"_parent_id" integer NOT NULL,
+	"id" varchar PRIMARY KEY NOT NULL,
+	"tenant_id" integer NOT NULL
   );
   
   ALTER TABLE "site_settings" ALTER COLUMN "updated_at" SET DEFAULT now();

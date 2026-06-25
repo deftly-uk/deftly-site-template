@@ -40,6 +40,8 @@ export const submitEnquiry = async (
   try {
     const tenant = await requireRequestTenant()
     const payload = await getPayloadClient()
+    // Trusted server-side create: the tenant is fixed from the request hostname, so we
+    // bypass the (now auth-only) public create access. enforceTenantWrite still runs.
     await payload.create({
       collection: 'enquiries',
       data: {
@@ -51,6 +53,7 @@ export const submitEnquiry = async (
         status: 'new',
         source: 'website',
       },
+      overrideAccess: true,
     })
 
     // Best-effort notification; failures are logged inside, never thrown.

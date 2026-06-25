@@ -9,6 +9,7 @@ import {
   claimNextBuildJob,
   markBuildJobFailed,
   markBuildJobReady,
+  recoverStaleBuildJobs,
   type BuildJob,
 } from './build-jobs'
 
@@ -48,6 +49,10 @@ export type BuildOutcome =
  * a `failed` outcome, so the queue is the single source of truth for what happened.
  */
 export const runBuildOnce = async (payload: Payload, pool: Pool): Promise<BuildOutcome> => {
+  // Requeue anything a crashed worker stranded in `building` before we look for work.
+  const recovered = await recoverStaleBuildJobs(pool)
+  if (recovered > 0) payload.logger?.warn?.(`Recovered ${recovered} stale build job(s) stuck in building`)
+
   const job = await claimNextBuildJob(pool)
   if (!job) return { claimed: false }
 

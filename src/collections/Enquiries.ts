@@ -1,12 +1,19 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, authenticated } from '../access/tenant'
+import { authenticated } from '../access/tenant'
 import { enforceTenantWrite } from '../access/enforce-tenant-write'
 
 /**
  * Contact-form submissions. Created by the public form (server-validated, tenant set
  * server-side from the hostname), read only by the business owner in the admin panel —
  * their lead inbox, scoped to their tenant.
+ *
+ * Creation is NOT `anyone`: that would let a direct REST/GraphQL call insert a lead under
+ * any `tenant` it chose, bypassing the hostname-scoped server action. Instead the public
+ * `submitEnquiry` server action runs trusted (`overrideAccess: true`) after resolving the
+ * tenant from the request host, and direct API creates require auth (and are then tenant-
+ * scoped by the plugin + enforceTenantWrite). So a lead can only ever land under its own
+ * tenant.
  */
 export const Enquiries: CollectionConfig = {
   slug: 'enquiries',
@@ -17,8 +24,9 @@ export const Enquiries: CollectionConfig = {
     description: 'Enquiries sent through your website contact form.',
   },
   access: {
-    // The public form creates enquiries; only the owner can read/manage their own.
-    create: anyone,
+    // The public form creates enquiries via the trusted server action (overrideAccess);
+    // direct API creates require auth. Only the owner can read/manage their own.
+    create: authenticated,
     read: authenticated,
     update: authenticated,
     delete: authenticated,

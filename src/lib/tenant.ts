@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import type { Tenant } from '@/payload-types'
 
 import { getPayloadClient } from './payload'
+import { extractSubdomain, normaliseHost } from './host'
 
 /**
  * Hostname → tenant resolution (Stage 1).
@@ -14,35 +15,11 @@ import { getPayloadClient } from './payload'
  * production a Deftly preview subdomain `acme.deftly.app`, or the customer's own
  * `customDomain` once attached (live session).
  *
- * `ROOT_DOMAIN` (default `localhost`) is the apex the subdomains hang off; the first
- * label of `<sub>.<ROOT_DOMAIN>` is the tenant subdomain. A bare apex, `www`, or a
- * dev override (`?tenant=` / `x-tenant-subdomain` header) are handled too.
+ * The pure host parsing (apex/www/subdomain) lives in `./host` so the Payload access
+ * layer can reuse it without pulling Next imports into the config graph.
  */
 
-const ROOT_DOMAIN = (process.env.ROOT_DOMAIN || 'localhost').toLowerCase()
-
-/** Strip the port and lowercase a Host header value. */
-const normaliseHost = (host: string): string => host.split(':')[0]!.trim().toLowerCase()
-
-/**
- * Extract the tenant subdomain from a host, or null if this is the apex / unknown.
- * Pure + synchronous so it is trivial to unit-test.
- */
-export const extractSubdomain = (rawHost: string | null | undefined): string | null => {
-  if (!rawHost) return null
-  const host = normaliseHost(rawHost)
-  if (!host || host === ROOT_DOMAIN || host === `www.${ROOT_DOMAIN}`) return null
-
-  // <sub>.<ROOT_DOMAIN> → sub (supports nested labels in custom roots).
-  if (host.endsWith(`.${ROOT_DOMAIN}`)) {
-    const sub = host.slice(0, -(ROOT_DOMAIN.length + 1))
-    const first = sub.split('.')[0]!
-    return first === 'www' || first === '' ? null : first
-  }
-
-  // Not under the configured root: treat as a custom domain (resolved separately).
-  return null
-}
+export { extractSubdomain } from './host'
 
 /** Resolve a tenant by its subdomain. Cached per request. */
 export const getTenantBySubdomain = cache(async (subdomain: string): Promise<Tenant | null> => {
@@ -79,16 +56,31 @@ export const resolveTenantFromHost = async (host: string | null | undefined): Pr
 }
 
 /**
+ * Is the `x-tenant-subdomain` override honoured? It lets any caller force a tenant, so it
+ * must NOT be trusted from arbitrary public traffic in production — a visitor could send
+ * it and render another tenant's site under the current host/canonical URL. It is enabled
+ * only outside production, or behind an explicit `ALLOW_TENANT_HEADER_OVERRIDE=true` for
+ * trusted preview environments.
+ */
+const tenantHeaderOverrideAllowed =
+  process.env.NODE_ENV !== 'production' || process.env.ALLOW_TENANT_HEADER_OVERRIDE === 'true'
+
+/** A tenant is publicly servable unless it has been suspended (churned / disabled). */
+const isPubliclyServable = (tenant: Tenant | null): boolean => tenant != null && tenant.status !== 'suspended'
+
+/**
  * The tenant for the current request, from the Host header. Cached so the layout and
- * page resolve it once. A `x-tenant-subdomain` header or `host` override (set by dev
- * tooling / tests) takes precedence, making local multi-tenant testing painless.
+ * page resolve it once. A `x-tenant-subdomain` override (dev tooling / tests / trusted
+ * preview only) takes precedence. Suspended tenants are never served publicly (treated as
+ * unresolved → 404).
  */
 export const getRequestTenant = cache(async (): Promise<Tenant | null> => {
   const h = await headers()
-  const override = h.get('x-tenant-subdomain')
-  if (override) return getTenantBySubdomain(override)
+  const override = tenantHeaderOverrideAllowed ? h.get('x-tenant-subdomain') : null
+  if (override) return getTenantBySubdomain(override) // dev/preview escape hatch: not status-gated
   const host = h.get('host')
-  return resolveTenantFromHost(host)
+  const tenant = await resolveTenantFromHost(host)
+  return isPubliclyServable(tenant) ? tenant : null
 })
 
 /** The current tenant, or a 404 if the hostname doesn't map to a site. */

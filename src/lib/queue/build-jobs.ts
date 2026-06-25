@@ -104,6 +104,29 @@ export const claimNextBuildJob = async (pool: Pool): Promise<BuildJob | null> =>
   return rows[0] ?? null
 }
 
+/**
+ * Recover stranded jobs. A worker that crashes after claiming a job leaves it in
+ * `building` forever — no heartbeat, no timeout, so it never runs again. This requeues
+ * any `building` job whose `started_at` is older than `staleMs` (default 15 min), bumping
+ * `attempts` so a perpetually-crashing job is still visible. Safe to call before every
+ * claim; healthy in-flight builds (recent `started_at`) are untouched. Returns the number
+ * of jobs requeued.
+ */
+export const recoverStaleBuildJobs = async (
+  pool: Pool,
+  staleMs = Number(process.env.BUILD_JOB_STALE_MS) || 15 * 60 * 1000,
+): Promise<number> => {
+  const { rowCount } = await pool.query(
+    `update build_jobs
+        set status = 'queued', started_at = null,
+            attempts = attempts + 1, updated_at = now()
+      where status = 'building'
+        and started_at < now() - ($1::bigint * interval '1 millisecond')`,
+    [Math.max(0, Math.floor(staleMs))],
+  )
+  return rowCount ?? 0
+}
+
 /** Mark a claimed job ready, recording the preview/live URL the engine produced. */
 export const markBuildJobReady = async (pool: Pool, id: string, siteUrl: string): Promise<void> => {
   await pool.query(

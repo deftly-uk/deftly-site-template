@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, authenticated } from '../access/tenant'
+import { authenticated, publicTenantRead } from '../access/tenant'
 import { enforceTenantWrite } from '../access/enforce-tenant-write'
 import { tenantMediaPrefix } from '../lib/storage'
 
@@ -20,7 +20,7 @@ export const Media: CollectionConfig = {
     description: 'Photos and images. Upload here, then pick them in your page content.',
   },
   access: {
-    read: anyone,
+    read: publicTenantRead,
     create: authenticated,
     update: authenticated,
     delete: authenticated,

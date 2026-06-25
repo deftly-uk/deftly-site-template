@@ -85,10 +85,17 @@ export const upsertTenantAdmin = async (payload: Payload, input: TenantAdminInpu
       ),
     )
     tenantIds.add(input.tenantId)
+    // Promote an existing user to platform operator when asked (e.g. the known admin
+    // after the multi-tenant migration left everyone is_super_admin=false). Only ever
+    // promote here — never silently demote an existing super admin.
+    const promote = input.isSuperAdmin && !current.isSuperAdmin
     return payload.update({
       collection: 'users',
       id: current.id,
-      data: { tenants: [...tenantIds].map((tenant) => ({ tenant })) },
+      data: {
+        tenants: [...tenantIds].map((tenant) => ({ tenant })),
+        ...(promote ? { isSuperAdmin: true } : {}),
+      },
       overrideAccess: true,
     }) as Promise<User>
   }

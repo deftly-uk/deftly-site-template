@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, authenticated } from '../access/tenant'
+import { authenticated, publicTenantRead } from '../access/tenant'
 import { enforceTenantWrite } from '../access/enforce-tenant-write'
 
 /**
@@ -22,7 +22,7 @@ export const SiteSettings: CollectionConfig = {
     description: 'Your business details, contact info, trust badges, legal footer and branding.',
   },
   access: {
-    read: anyone,
+    read: publicTenantRead,
     create: authenticated,
     update: authenticated,
     delete: authenticated,

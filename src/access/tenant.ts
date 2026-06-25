@@ -1,6 +1,8 @@
-import type { Access } from 'payload'
+import type { Access, Where } from 'payload'
 
 import type { User } from '@/payload-types'
+
+import { extractSubdomain, normaliseHost } from '@/lib/host'
 
 /**
  * Multi-tenant access helpers (Stage 1).
@@ -26,3 +28,39 @@ export const authenticated: Access = ({ req: { user } }) => Boolean(user)
 
 /** Only the platform operator. Used where cross-tenant power would be unsafe. */
 export const superAdminsOnly: Access = ({ req: { user } }) => isSuperAdmin(user)
+
+/**
+ * Public READ for tenant-scoped content collections (Stage 1 isolation hardening).
+ *
+ * `read: anyone` was unsafe: the multi-tenant plugin only narrows an *authenticated*
+ * user to their own tenant, so an anonymous REST/GraphQL read (`/api/services` etc.)
+ * returned rows across every tenant. The public website never relies on this — it reads
+ * server-side with `overrideAccess: true` (src/lib/queries.ts) — so we can lock raw API
+ * reads down without touching the site.
+ *
+ * Authenticated callers defer to the plugin (which scopes them to their tenants).
+ * Anonymous callers are scoped to the tenant that owns the request hostname, so a public
+ * API read can only ever surface that one tenant's content, never another's.
+ */
+export const publicTenantRead: Access = async ({ req }) => {
+  if (req.user) return true // plugin narrows authenticated users to their own tenant(s)
+
+  const host = req.headers?.get?.('host')
+  if (!host) return false
+  const bareHost = normaliseHost(host)
+  const sub = extractSubdomain(bareHost)
+  const where: Where = sub
+    ? { subdomain: { equals: sub } }
+    : { customDomain: { equals: bareHost } }
+
+  const { docs } = await req.payload.find({
+    collection: 'tenants',
+    where,
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const tenantId = docs[0]?.id
+  if (tenantId == null) return false
+  return { tenant: { equals: tenantId } } as Where
+}
