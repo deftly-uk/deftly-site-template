@@ -2,6 +2,43 @@
 
 All notable changes to the Deftly Site Template are documented in this file.
 
+## [Unreleased] — engine-multitenant — Phases 3+4: multi-tenant engine (CODE ONLY)
+
+Converts the single-tenant template into the multi-tenant "platform app" (one app +
+one database serving many sites by hostname) and builds the site-generation engine on
+top. Build + tested locally only; deploy/provisioning is a later live step.
+
+### Added — Stage 1: multi-tenant foundation
+- `@payloadcms/plugin-multi-tenant`: a tenant dimension on all content, with access
+  scoped to the user's tenant(s); super admins bypass via `userHasAccessToAllTenants`.
+- `Tenants` collection (subdomain routing key + optional custom domain); hostname →
+  tenant resolution (`src/lib/tenant.ts`); the frontend now renders per tenant.
+- `SiteSettings` + `HomePage` moved from single-row globals to per-tenant collections.
+- `Users` gain `isSuperAdmin` + per-tenant membership; admin access scoped per tenant.
+- `enforceTenantWrite` hook closes the cross-tenant CREATE hole the plugin leaves open.
+- Shared storage with a per-tenant path prefix (`tenants/<subdomain>/...`); local-disk
+  fallback when no Blob token (dev/tests).
+- **Tenant-isolation tests (mandatory):** prove tenant A cannot read/edit/create/delete/
+  upload to or log into tenant B's content, media or admin; edits are independent.
+
+### Added — Stage 2: per-industry template + spec-driven content
+- Mirrored the CRM `SiteSpec` schema verbatim (single source of truth; sync test).
+- Per-industry templates (canonical **plumber** variant + electrician/roofer/generic):
+  section copy, default trust promises, service icons, stock-image palette, and
+  auto-generated hero headline / SEO / privacy policy.
+- `loadTenantFromSpec`: a SiteSpec → a populated, editable tenant with stock placeholders
+  when real photos are absent. Idempotent by subdomain.
+
+### Added — Stage 3: the builder (queue reader)
+- Local `build_jobs` table mirroring the CRM control-plane shape.
+- A worker that safely claims a queued job (`FOR UPDATE SKIP LOCKED`), creates the
+  tenant, loads content, and advances `queued → building → ready` (or `→ failed`), with
+  a placeholder preview URL. `npm run build:worker` drains the queue.
+
+### Tooling
+- Vitest harness on a throwaway Docker Postgres (`npm test`, fully self-contained); 32
+  tests green. Production migration `20260625_173116_multitenant_engine` generated.
+
 ## [2.0.0] — 2026-06-23 — Phase 1: first real, editable template
 
 Complete rebuild from scratch as a single-tenant, CMS-first trade site (the prior
