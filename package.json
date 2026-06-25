@@ -20,6 +20,7 @@
     "migrate:create": "payload migrate:create",
     "migrate:status": "payload migrate:status",
     "seed": "node --env-file-if-exists=.env --import tsx src/seed/index.ts",
+    "build:worker": "node --env-file-if-exists=.env --import tsx src/scripts/run-build-worker.ts",
     "test": "node scripts/with-test-db.mjs",
     "test:vitest": "vitest run",
     "test:watch": "vitest"
