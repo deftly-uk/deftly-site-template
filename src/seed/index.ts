@@ -2,7 +2,7 @@ import { getPayload } from 'payload'
 import type { Payload } from 'payload'
 
 import config from '../payload.config'
-import { heading, paragraph, richText } from './lexical'
+import { heading, paragraph, richText } from '../lib/lexical'
 import { upsertTenantImage, type StockPalette } from '../lib/stock-images'
 import {
   provisionTenantContent,
