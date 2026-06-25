@@ -1,11 +1,13 @@
 import type { MetadataRoute } from 'next'
 
-import { SERVER_URL } from '@/lib/seo'
+import { getRequestBaseUrl } from '@/lib/tenant'
 
-export default function robots(): MetadataRoute.Robots {
+// Per-request so each tenant's hostname advertises its own sitemap.
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const baseUrl = await getRequestBaseUrl()
   return {
     rules: { userAgent: '*', allow: '/', disallow: ['/admin', '/api'] },
-    sitemap: `${SERVER_URL}/sitemap.xml`,
-    host: SERVER_URL,
+    sitemap: `${baseUrl}/sitemap.xml`,
+    host: baseUrl,
   }
 }

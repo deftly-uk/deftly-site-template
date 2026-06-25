@@ -2,12 +2,14 @@ import Link from 'next/link'
 import React from 'react'
 
 import { getSiteSettings } from '@/lib/queries'
+import { getRequestTenant } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
 
 const NotFound = async () => {
-  const settings = await getSiteSettings()
-  const nf = settings.notFound
+  const tenant = await getRequestTenant()
+  const settings = tenant ? await getSiteSettings(tenant.id) : null
+  const nf = settings?.notFound
 
   return (
     <section className="section bg-white">

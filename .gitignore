@@ -19,6 +19,11 @@ next-env.d.ts
 public/uploads/
 raw-images/
 seed-cache/
+# Local-disk upload output (when no Blob token is set, e.g. dev/tests)
+/media/
+
+# Test artifacts
+coverage/
 
 # Old scaffold, kept locally for reference only
 _graveyard/

@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
-import { adminsOnly, anyone } from '../access'
+import { anyone, authenticated } from '../access/tenant'
+import { enforceTenantWrite } from '../access/enforce-tenant-write'
 
 /**
  * Customer testimonials, entered manually in the CMS.
@@ -17,10 +18,11 @@ export const Testimonials: CollectionConfig = {
   },
   access: {
     read: anyone,
-    create: adminsOnly,
-    update: adminsOnly,
-    delete: adminsOnly,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated,
   },
+  hooks: { beforeValidate: [enforceTenantWrite] },
   defaultSort: 'order',
   fields: [
     {

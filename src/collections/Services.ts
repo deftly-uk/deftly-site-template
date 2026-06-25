@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
-import { adminsOnly, anyone } from '../access'
+import { anyone, authenticated } from '../access/tenant'
+import { enforceTenantWrite } from '../access/enforce-tenant-write'
 
 /** A service the business offers. Rendered as a card in the Services grid. */
 export const Services: CollectionConfig = {
@@ -13,10 +14,11 @@ export const Services: CollectionConfig = {
   },
   access: {
     read: anyone,
-    create: adminsOnly,
-    update: adminsOnly,
-    delete: adminsOnly,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated,
   },
+  hooks: { beforeValidate: [enforceTenantWrite] },
   defaultSort: 'order',
   fields: [
     {

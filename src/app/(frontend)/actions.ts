@@ -3,15 +3,17 @@
 import { sendEnquiryEmail } from '@/lib/email'
 import { getPayloadClient } from '@/lib/payload'
 import { getSiteSettings } from '@/lib/queries'
+import { requireRequestTenant } from '@/lib/tenant'
 import type { ContactState } from '@/lib/contact-types'
 
 const digits = (s: string): string => s.replace(/[^\d]/g, '')
 
 /**
  * Handle a contact-form submission:
- *  1. server-side validation + honeypot
- *  2. SAVE the enquiry to the CMS (the owner's lead inbox) — this is the source of truth
- *  3. email the owner (best-effort; never blocks the save)
+ *  1. resolve the tenant from the hostname (the enquiry belongs to THIS site only)
+ *  2. server-side validation + honeypot
+ *  3. SAVE the enquiry to the CMS (the owner's lead inbox), tagged to the tenant
+ *  4. email the owner (best-effort; never blocks the save)
  * The lead is saved even if email is unconfigured, so a missed key never loses a job.
  */
 export const submitEnquiry = async (
@@ -36,10 +38,12 @@ export const submitEnquiry = async (
   }
 
   try {
+    const tenant = await requireRequestTenant()
     const payload = await getPayloadClient()
     await payload.create({
       collection: 'enquiries',
       data: {
+        tenant: tenant.id,
         name,
         phone,
         postcode: postcode || undefined,
@@ -50,8 +54,8 @@ export const submitEnquiry = async (
     })
 
     // Best-effort notification; failures are logged inside, never thrown.
-    const settings = await getSiteSettings()
-    await sendEnquiryEmail({ name, phone, postcode, message }, settings)
+    const settings = await getSiteSettings(tenant.id)
+    if (settings) await sendEnquiryEmail({ name, phone, postcode, message }, settings)
 
     return { status: 'success' }
   } catch (err) {

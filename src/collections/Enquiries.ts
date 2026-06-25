@@ -1,10 +1,12 @@
 import type { CollectionConfig } from 'payload'
 
-import { adminsOnly } from '../access'
+import { anyone, authenticated } from '../access/tenant'
+import { enforceTenantWrite } from '../access/enforce-tenant-write'
 
 /**
- * Contact-form submissions. Created by the public form (server-validated),
- * read only by the business owner in the admin panel — their lead inbox.
+ * Contact-form submissions. Created by the public form (server-validated, tenant set
+ * server-side from the hostname), read only by the business owner in the admin panel —
+ * their lead inbox, scoped to their tenant.
  */
 export const Enquiries: CollectionConfig = {
   slug: 'enquiries',
@@ -15,12 +17,13 @@ export const Enquiries: CollectionConfig = {
     description: 'Enquiries sent through your website contact form.',
   },
   access: {
-    // The public form creates enquiries; only the owner can read/manage them.
-    create: () => true,
-    read: adminsOnly,
-    update: adminsOnly,
-    delete: adminsOnly,
+    // The public form creates enquiries; only the owner can read/manage their own.
+    create: anyone,
+    read: authenticated,
+    update: authenticated,
+    delete: authenticated,
   },
+  hooks: { beforeValidate: [enforceTenantWrite] },
   fields: [
     {
       name: 'name',

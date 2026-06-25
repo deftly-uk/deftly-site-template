@@ -42,6 +42,7 @@ const countryCode = (country?: string | null): string => {
  */
 export const buildLocalBusinessJsonLd = (
   settings: SiteSetting,
+  baseUrl: string = SERVER_URL,
 ): Record<string, unknown> => {
   const image = getImage(settings.ogImage, 'feature')
   const addr = settings.address
@@ -59,7 +60,7 @@ export const buildLocalBusinessJsonLd = (
     '@context': 'https://schema.org',
     '@type': subtype(settings.tradeType),
     name: settings.businessName,
-    url: SERVER_URL,
+    url: baseUrl,
   }
 
   if (settings.legalName) json.legalName = settings.legalName
@@ -90,7 +91,11 @@ export const buildLocalBusinessJsonLd = (
 }
 
 /** Homepage metadata from CMS, falling back through HomePage → SiteSettings → name. */
-export const buildHomeMetadata = (settings: SiteSetting, home: HomePage): Metadata => {
+export const buildHomeMetadata = (
+  settings: SiteSetting,
+  home: HomePage,
+  baseUrl: string = SERVER_URL,
+): Metadata => {
   const title =
     home.metaTitle?.trim() ||
     settings.defaultMetaTitle?.trim() ||
@@ -109,7 +114,7 @@ export const buildHomeMetadata = (settings: SiteSetting, home: HomePage): Metada
     openGraph: {
       title,
       description,
-      url: SERVER_URL,
+      url: baseUrl,
       siteName: settings.businessName,
       locale: 'en_GB',
       type: 'website',

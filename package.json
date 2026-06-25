@@ -19,11 +19,15 @@
     "migrate": "payload migrate",
     "migrate:create": "payload migrate:create",
     "migrate:status": "payload migrate:status",
-    "seed": "node --env-file-if-exists=.env --import tsx src/seed/index.ts"
+    "seed": "node --env-file-if-exists=.env --import tsx src/seed/index.ts",
+    "test": "node scripts/with-test-db.mjs",
+    "test:vitest": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@payloadcms/db-vercel-postgres": "3.85.1",
     "@payloadcms/next": "3.85.1",
+    "@payloadcms/plugin-multi-tenant": "^3.85.1",
     "@payloadcms/richtext-lexical": "3.85.1",
     "@payloadcms/storage-vercel-blob": "3.85.1",
     "@payloadcms/ui": "3.85.1",
@@ -42,6 +46,7 @@
     "@types/react-dom": "^19.2.3",
     "tailwindcss": "^4.2.2",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
   }
 }
