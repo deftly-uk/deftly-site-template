@@ -1,23 +1,31 @@
-import type { GlobalConfig } from 'payload'
+import type { CollectionConfig } from 'payload'
 
-import { adminsOnly, anyone } from '../access'
+import { authenticated, publicTenantRead } from '../access/tenant'
+import { enforceTenantWrite } from '../access/enforce-tenant-write'
 
 /**
  * HomePage — the words and images for each section of the homepage.
  * Services and testimonials come from their own collections; everything else
  * (headlines, body copy, labels, images) is editable here (Constitution Article I).
+ *
+ * Was a Payload *global*; now a tenant-scoped collection with the multi-tenant
+ * plugin's `isGlobal: true` (one row per tenant). See SiteSettings for the rationale.
  */
-export const HomePage: GlobalConfig = {
+export const HomePage: CollectionConfig = {
   slug: 'home-page',
-  label: 'Homepage',
+  labels: { singular: 'Homepage', plural: 'Homepage' },
   admin: {
+    useAsTitle: 'heroHeadline',
     group: 'Content',
     description: 'The headlines, text and images for each section of your homepage.',
   },
   access: {
-    read: anyone,
-    update: adminsOnly,
+    read: publicTenantRead,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated,
   },
+  hooks: { beforeValidate: [enforceTenantWrite] },
   fields: [
     {
       type: 'tabs',

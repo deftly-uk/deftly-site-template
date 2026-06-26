@@ -1,23 +1,33 @@
-import type { GlobalConfig } from 'payload'
+import type { CollectionConfig } from 'payload'
 
-import { adminsOnly, anyone } from '../access'
+import { authenticated, publicTenantRead } from '../access/tenant'
+import { enforceTenantWrite } from '../access/enforce-tenant-write'
 
 /**
  * SiteSettings — the business's identity, contact details, trust signals, legal
  * footer info and branding. EVERYTHING a customer might change about "who they are"
  * lives here (Constitution Article I). Read publicly; edited by the owner.
+ *
+ * This was a Payload *global* in the single-tenant template. Globals are single-row
+ * and cannot be tenant-scoped, so it is now a collection with the multi-tenant
+ * plugin's `isGlobal: true` (one row per tenant, global-like admin UX). Reads go
+ * through a tenant-filtered `find` (see src/lib/queries.ts).
  */
-export const SiteSettings: GlobalConfig = {
+export const SiteSettings: CollectionConfig = {
   slug: 'site-settings',
-  label: 'Site Settings',
+  labels: { singular: 'Site Settings', plural: 'Site Settings' },
   admin: {
+    useAsTitle: 'businessName',
     group: 'Settings',
     description: 'Your business details, contact info, trust badges, legal footer and branding.',
   },
   access: {
-    read: anyone,
-    update: adminsOnly,
+    read: publicTenantRead,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated,
   },
+  hooks: { beforeValidate: [enforceTenantWrite] },
   fields: [
     {
       type: 'tabs',

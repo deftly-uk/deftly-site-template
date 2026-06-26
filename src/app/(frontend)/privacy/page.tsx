@@ -3,19 +3,23 @@ import React from 'react'
 
 import { RichText } from '@/components/RichText'
 import { getSiteSettings } from '@/lib/queries'
+import { requireRequestTenant } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
 
 export const generateMetadata = async (): Promise<Metadata> => {
-  const settings = await getSiteSettings()
+  const tenant = await requireRequestTenant()
+  const settings = await getSiteSettings(tenant.id)
   return {
-    title: settings.privacyPageTitle || 'Privacy Policy',
+    title: settings?.privacyPageTitle || 'Privacy Policy',
     robots: { index: true, follow: true },
   }
 }
 
 const PrivacyPage = async () => {
-  const settings = await getSiteSettings()
+  const tenant = await requireRequestTenant()
+  const settings = await getSiteSettings(tenant.id)
+  if (!settings) return null
 
   return (
     <section className="section bg-white">

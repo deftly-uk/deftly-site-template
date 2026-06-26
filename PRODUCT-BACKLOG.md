@@ -60,6 +60,14 @@ reload the live site, see it change.
 - **Placeholder images are generated, not stock photos.** Real customer photos beat everything;
   the seed creates clean, on-brand gradient placeholders that the customer replaces with their
   own. Nothing is committed to the code.
+- **Rebuilds will protect customer edits (Option 2: tag engine-generated content).** A site can
+  be rebuilt from its spec; the rebuild must never delete content the customer added or changed
+  themselves. Decided to tag engine-made content so rebuilds only ever clean up their own items.
+  Full reasoning and the options weighed: [ADR 0001](./docs/decisions/0001-rebuild-content-reconciliation.md).
+  Approved, not yet built (see Phase 4 backlog).
+
+> Bigger "why we went this way" calls now live in the
+> [Architecture Decision Log](./docs/decisions/README.md).
 
 ---
 
@@ -102,6 +110,26 @@ reload the live site, see it change.
 - [ ] The monthly "you got N enquiries" retention email to the owner.
 - [ ] Richer local SEO and answer-engine optimisation.
 - [ ] Deeper visual polish (this is where a visual design tool can help once the plumbing is solid).
+- [ ] **Adversarial review of the "set once, never by rebuild" decision** (engine, branch
+      `engine-multitenant`, `src/lib/provision.ts` `upsertTenant`, commit e598118). On a rebuild,
+      the engine refreshes only the tenant's name/industry and deliberately never changes `status`
+      or `customDomain`, on the rationale that those are live routing/lifecycle fields owned by the
+      platform out-of-band; a rebuild rewriting them could take a custom-domain site offline or
+      reset a live tenant's status. They are set on create only. Flagged for MVP, but the assumption
+      needs a proper challenge before we lean on it. Probe:
+      1. Is "set once" actually right, or are there legitimate flows where a rebuild *should* update
+         status/customDomain (e.g. CRM marks a tenant active on payment; a go-live build that should
+         flip pending → active)?
+      2. With this rule in place, what is the intended mechanism to change status/customDomain? Is
+         that path in place, or is there now a gap (no way to move a tenant's lifecycle at all)?
+      3. Does the build worker need to set status on a deliberate go-live, and if so how, without
+         the broad clobber we removed?
+      4. Any inconsistency where the provisioning/worker path still assumes the old overwrite
+         behaviour?
+      5. Recommend the right long-term model: explicit lifecycle transitions / a status state-machine
+         vs letting the spec own these fields under a "set only if provided" rule.
+      Output: material findings with file:line and a concrete recommendation each; flag if any part
+      is actually unsafe today.
 
 ### Phase 3: multi-tenant conversion
 
@@ -116,6 +144,10 @@ reload the live site, see it change.
       built around a template that actually works).
 - [ ] Custom domain handling (likely Deftly buys and holds the domain on the customer's behalf).
 - [ ] Human-review vs full-automation decision for generation quality.
+- [ ] **Rebuild content reconciliation (Option 2 from [ADR 0001](./docs/decisions/0001-rebuild-content-reconciliation.md)).**
+      Tag engine-generated content so rebuilds update/remove only their own items and never touch
+      the customer's edits. Needs a hidden origin field + stable spec key, a migration, reconcile
+      logic, and tests (rename, removal, customer-add, customer-edit-then-rebuild).
 
 ### Engineering hygiene (cross-cutting, do alongside the above)
 
