@@ -63,7 +63,29 @@ export const createControlPlanePool = (connectionString = process.env.CONTROL_PL
         'Supabase "deftly" database (the one that owns the shared build_jobs queue).',
     )
   }
-  return new Pool({ connectionString })
+  return new Pool({ connectionString, ssl: sslOptionFromConnectionString(connectionString) })
+}
+
+/**
+ * Translate a libpq-style `?sslmode=` into a node-postgres `ssl` option.
+ *
+ * node-postgres does NOT interpret `sslmode` the way libpq does: a bare
+ * `new Pool({ connectionString: '...sslmode=require' })` ends up doing full CA
+ * verification (`rejectUnauthorized: true`), which fails against Supabase's direct host
+ * (its cert is signed by Supabase's own CA, not in Node's trust store) — so the worker
+ * could never connect and the queue would never drain. We map sslmode explicitly:
+ *   - require / prefer / no-verify → encrypt, do NOT verify the chain (libpq's `require`)
+ *   - verify-ca / verify-full      → encrypt AND verify
+ *   - disable / allow / (absent)   → no SSL (local test Postgres is plaintext)
+ * Returns `false` (SSL off) when there is no sslmode, so the local Docker test DB keeps
+ * working unchanged.
+ */
+const sslOptionFromConnectionString = (cs: string): { rejectUnauthorized: boolean } | false => {
+  const match = /[?&]sslmode=([^&]+)/i.exec(cs)
+  if (!match) return false
+  const mode = decodeURIComponent(match[1]).toLowerCase()
+  if (mode === 'disable' || mode === 'allow') return false
+  return { rejectUnauthorized: mode === 'verify-ca' || mode === 'verify-full' }
 }
 
 /** Enqueue a job (in production the CRM does this; here it's used by tests/seeds). */

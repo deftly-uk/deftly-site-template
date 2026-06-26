@@ -20,6 +20,10 @@ own (Neon) DB — only the queue is shared.
   creates the queue table. The race-safe claim (`FOR UPDATE SKIP LOCKED`), stale-job
   recovery, and the `status`/`site_url` write-back are unchanged in logic — they now land
   on the shared row instead of a local copy.
+- `createControlPlanePool` honours libpq-style `?sslmode=` (e.g. `require` = encrypt
+  without strict CA verification) so it actually connects to Supabase; without this,
+  node-postgres would do strict verification and the worker could never reach the queue.
+  `.env.example` now recommends a least-privilege `deftly_engine` login over the superuser.
 
 ### Removed
 - The engine's self-made local `build_jobs` table (`ensureBuildJobsTable`). The queue table
