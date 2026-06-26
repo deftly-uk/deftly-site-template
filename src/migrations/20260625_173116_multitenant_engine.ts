@@ -14,14 +14,14 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
 	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
 	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
-  
+
   CREATE TABLE "users_tenants" (
 	"_order" integer NOT NULL,
 	"_parent_id" integer NOT NULL,
 	"id" varchar PRIMARY KEY NOT NULL,
 	"tenant_id" integer NOT NULL
   );
-  
+
   ALTER TABLE "site_settings" ALTER COLUMN "updated_at" SET DEFAULT now();
   ALTER TABLE "site_settings" ALTER COLUMN "updated_at" SET NOT NULL;
   ALTER TABLE "site_settings" ALTER COLUMN "created_at" SET DEFAULT now();
@@ -81,23 +81,23 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TABLE "tenants" CASCADE;
   DROP TABLE "users_tenants" CASCADE;
   ALTER TABLE "media" DROP CONSTRAINT "media_tenant_id_tenants_id_fk";
-  
+
   ALTER TABLE "services" DROP CONSTRAINT "services_tenant_id_tenants_id_fk";
-  
+
   ALTER TABLE "testimonials" DROP CONSTRAINT "testimonials_tenant_id_tenants_id_fk";
-  
+
   ALTER TABLE "enquiries" DROP CONSTRAINT "enquiries_tenant_id_tenants_id_fk";
-  
+
   ALTER TABLE "site_settings" DROP CONSTRAINT "site_settings_tenant_id_tenants_id_fk";
-  
+
   ALTER TABLE "home_page" DROP CONSTRAINT "home_page_tenant_id_tenants_id_fk";
-  
+
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_tenants_fk";
-  
+
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_site_settings_fk";
-  
+
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_home_page_fk";
-  
+
   DROP INDEX "media_tenant_idx";
   DROP INDEX "services_tenant_idx";
   DROP INDEX "testimonials_tenant_idx";
