@@ -6,15 +6,15 @@ import { SPEC_VERSION, type SiteSpecInput } from '@/lib/spec/schema'
 import { PLUMBER_SAMPLE_SPEC } from '@/lib/spec/sample-plumber'
 import {
   claimNextBuildJob,
-  createPool,
+  createControlPlanePool,
   enqueueBuildJob,
-  ensureBuildJobsTable,
   getBuildJob,
   recoverStaleBuildJobs,
   retriggerBuildJob,
 } from '@/lib/queue/build-jobs'
 import { drainBuildQueue, runBuildOnce, subdomainForJob } from '@/lib/queue/worker'
 
+import { ensureControlPlaneSchema } from './helpers/control-plane'
 import { getTestPayload, uniqueSub } from './helpers/payload'
 
 /**
@@ -35,8 +35,11 @@ describe('Stage 3: build worker', () => {
 
   beforeAll(async () => {
     payload = await getTestPayload()
-    pool = createPool()
-    await ensureBuildJobsTable(pool)
+    // The queue lives on the control plane. In tests that's the same throwaway Postgres
+    // (CONTROL_PLANE_DATABASE_URL is set to TEST_DATABASE_URI in vitest.config.ts); the
+    // table is stood up here by the test fixture, mirroring the CRM-owned migration.
+    pool = createControlPlanePool()
+    await ensureControlPlaneSchema(pool)
   })
 
   afterAll(async () => {

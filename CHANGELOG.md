@@ -2,6 +2,40 @@
 
 All notable changes to the Deftly Site Template are documented in this file.
 
+## [Unreleased] — shared-build-queue — point the queue at the CRM control plane (CODE ONLY)
+
+Makes `build_jobs` ONE shared queue instead of two copies in two databases. The engine's
+build worker now reads/writes the queue in the CRM's control-plane database, so a rep
+marking "Interested" in the CRM actually reaches the engine, and the worker writes
+status + `site_url` back to the row the CRM displays. Tenant content stays in the engine's
+own (Neon) DB — only the queue is shared.
+
+### Changed
+- New `CONTROL_PLANE_DATABASE_URL` env var: the connection to the CRM's Supabase "deftly"
+  database, where the shared `build_jobs` queue lives. `createControlPlanePool()` replaces
+  the old `createPool()` and reads it — with **no fallback** to the engine's own
+  `POSTGRES_URL`, so a misconfiguration fails loudly instead of silently re-splitting the
+  queue across two databases.
+- The build worker (`run-build-worker.ts`) connects to the control plane and no longer
+  creates the queue table. The race-safe claim (`FOR UPDATE SKIP LOCKED`), stale-job
+  recovery, and the `status`/`site_url` write-back are unchanged in logic — they now land
+  on the shared row instead of a local copy.
+- `createControlPlanePool` honours libpq-style `?sslmode=` (e.g. `require` = encrypt
+  without strict CA verification) so it actually connects to Supabase; without this,
+  node-postgres would do strict verification and the worker could never reach the queue.
+  `.env.example` now recommends a least-privilege `deftly_engine` login over the superuser.
+
+### Removed
+- The engine's self-made local `build_jobs` table (`ensureBuildJobsTable`). The queue table
+  is owned solely by the CRM migration `deftly-app/supabase/migrations/0006_build_queue.sql`.
+  Tests stand up an equivalent table via a TEST-ONLY fixture (`test/helpers/control-plane.ts`)
+  that mirrors that canonical shape.
+
+### Tests
+- `vitest.config.ts` sets `CONTROL_PLANE_DATABASE_URL` to the throwaway test Postgres, so
+  the Stage 3 queue tests exercise the full lifecycle against the control-plane pool. All
+  suites green.
+
 ## [Unreleased] — engine-multitenant — Phases 3+4: multi-tenant engine (CODE ONLY)
 
 Converts the single-tenant template into the multi-tenant "platform app" (one app +
