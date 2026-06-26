@@ -155,10 +155,14 @@ export const markBuildJobReady = async (pool: Pool, id: string, siteUrl: string)
   )
 }
 
-/** Mark a claimed job failed, recording why (re-triggerable back to queued). */
+/**
+ * Mark a claimed job failed, recording why (re-triggerable back to queued). Guarded to
+ * `status = 'building'` so a stray throw in any post-`ready` side-effect (e.g. the new
+ * notification email) can never demote an already-live job back to 'failed'.
+ */
 export const markBuildJobFailed = async (pool: Pool, id: string, error: string): Promise<void> => {
   await pool.query(
-    `update build_jobs set status = 'failed', error = $2, failed_at = now(), updated_at = now() where id = $1`,
+    `update build_jobs set status = 'failed', error = $2, failed_at = now(), updated_at = now() where id = $1 and status = 'building'`,
     [id, error.slice(0, 4000)],
   )
 }

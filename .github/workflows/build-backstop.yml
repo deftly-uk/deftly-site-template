@@ -1,0 +1,36 @@
+name: build-queue-backstop
+
+# Low-frequency BACKSTOP for the self-serve build loop. The primary trigger is the CRM's
+# on-enqueue nudge (instant); this is the safety net that drains anything a nudge missed.
+# GitHub's scheduled runs are best-effort (often a few minutes late) and capped at every
+# 5 min — fine for a backstop, which is why we don't rely on it for the "couple of minutes"
+# latency. Runs are cheap: the worker route ACKs immediately and drains in the background.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+# Never pile up overlapping runs.
+concurrency:
+  group: build-backstop
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Nudge the engine worker to drain the build queue
+        env:
+          WORKER_URL: ${{ vars.WORKER_URL || 'https://deftly-site-template.vercel.app/internal/run-worker' }}
+          WORKER_TRIGGER_SECRET: ${{ secrets.WORKER_TRIGGER_SECRET }}
+        run: |
+          if [ -z "$WORKER_TRIGGER_SECRET" ]; then
+            echo "WORKER_TRIGGER_SECRET not set — skipping (configure the repo secret)."
+            exit 0
+          fi
+          code=$(curl -s -o /tmp/out.txt -w "%{http_code}" -X POST "$WORKER_URL" \
+            -H "Authorization: Bearer $WORKER_TRIGGER_SECRET" -H "content-type: application/json" -d '{}')
+          echo "HTTP $code"; cat /tmp/out.txt; echo
+          # 200/202 = drained/accepted. Anything else is a real failure worth surfacing.
+          case "$code" in 200|202) exit 0 ;; *) exit 1 ;; esac

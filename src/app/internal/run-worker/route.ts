@@ -77,6 +77,12 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!process.env.WORKER_TRIGGER_SECRET) {
     return Response.json({ ok: false, error: 'WORKER_TRIGGER_SECRET not configured' }, { status: 503 })
   }
+  // Fail loudly instead of ACKing a drain that can't run: without the queue connection the
+  // background drain would throw and only console.error, leaving the caller thinking it
+  // succeeded while nothing builds.
+  if (!process.env.CONTROL_PLANE_DATABASE_URL) {
+    return Response.json({ ok: false, error: 'CONTROL_PLANE_DATABASE_URL not configured' }, { status: 503 })
+  }
   if (!authorized(req)) {
     return Response.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
