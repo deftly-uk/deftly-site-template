@@ -2,6 +2,22 @@
 
 All notable changes to the Deftly Site Template are documented in this file.
 
+## [Unreleased] — self-serve email delivery (Stage 4, 2026-06-26)
+
+The build worker now **delivers**: on a job reaching `ready` it emails the site link via
+Resend (`sendSiteReadyEmail`; the recipient travels in the spec snapshot, since the queue
+login can't read the CRM leads table — never throws/sends when unconfigured). Built sites get
+a **working link with no per-subdomain DNS** via PATH mode (`PREVIEW_PATH_BASE` →
+`<domain>/s/<sub>`, served by new `/s/:sub` middleware that sets the trusted tenant-override
+header and strips any client-supplied one). New `POST /internal/run-worker` (secret-protected,
+`?wait=1` for synchronous drains) is triggered by the CRM's on-enqueue nudge and an external
+GitHub Actions backstop. `markBuildJobFailed` is guarded to `status='building'` so a post-ready
+side-effect can't demote a live site. Proven live 2026-06-26: CRM enqueue → build → emailed
+working link, hands-off, for 5 varied plumber test leads.
+
+Known limit (fast-follow): nav links under `/s/<sub>` (logo, Privacy) 404 in PATH mode; a
+wildcard `*.deftly.uk` subdomain removes the limitation (needs one Namecheap DNS record).
+
 ## [Unreleased] — live deploy (Phase 1 RUN 2)
 
 Deployed to Vercel (team "Harry's projects", Hobby) at `deftly-site-template.vercel.app`,
