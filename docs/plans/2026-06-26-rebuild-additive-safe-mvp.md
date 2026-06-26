@@ -39,8 +39,12 @@ These are cosmetic/staleness costs, not data loss. The full model (ADR 0001) fix
   **skip** (leave it). Only create when missing. Protects customer edits to settings/home page.
 - `upsertTenantDoc` (`services`, `testimonials`): if a row already matches (`tenant` +
   match field), **skip**. Only create genuinely new items. Never update, never delete.
-- `upsertTenant` and `upsertTenantAdmin` are **unchanged**: the tenant record and admin login
-  are platform-managed metadata, not customer content, so they may keep updating on rebuild.
+- `upsertTenant`: on rebuild it refreshes only the spec-derived labels (`name`, `industry`)
+  and **never overwrites `status` or `customDomain`** (live routing/lifecycle metadata the
+  platform owns out-of-band). Those are set on create and changed elsewhere. (Hardened after
+  the Codex MVP review — see below.)
+- `upsertTenantAdmin` is unchanged: its update path only merges tenant membership and
+  promotes super-admins; it never clobbers password/email/name, so it is already rebuild-safe.
 - Function names kept as-is for a minimal blast radius; comments updated to say "create-if-absent".
 
 ## Note on the seed
@@ -84,6 +88,26 @@ These are the SAME items Codex raised on the Phase 2 plan; they are intentionall
 scope for the MVP. A useful adversarial review of THIS doc would instead confirm: the change
 is genuinely additive (no overwrite/delete path remains), nothing customer-facing is
 hardcoded, the test actually proves edit-survival, and no NEW data-loss path was introduced.
+
+## Codex MVP review — both findings ACCEPTED and FIXED
+
+- **High — `upsertTenant` clobbered live metadata on rebuild.** A rebuild rewrote
+  `customDomain` to `null` (taking a custom-domain site offline) and reset `status` (the
+  same root cause: it could downgrade an active tenant or un-suspend a suspended one), because
+  `loadTenantFromSpec` never passes `customDomain` and forces `status: 'pending'`. **Fixed:**
+  `upsertTenant`'s update path now refreshes only `name`/`industry` and never touches
+  `status`/`customDomain`. New test `rebuild preserves live routing/lifecycle metadata`
+  proves a custom domain + active status survive a rebuild. (Agreed in full; we also fixed
+  `status`, which Codex's reasoning implied but did not call out explicitly.)
+- **Medium — additive-safety test could pass for the wrong reason.** It reused shared mutable
+  tenant state and edited a service the prior test had renamed, so the service half proved
+  nothing (even the old behaviour would have left it alone). **Fixed:** the test now runs on a
+  fresh tenant, edits a service whose title still matches the spec, edits as a logged-in owner
+  (`overrideAccess: false`), and asserts both that the edited row survives and that the service
+  count is unchanged (no duplicate).
+
+Result: full suite green (37 tests). The change is now genuinely additive AND preserves live
+platform metadata on rebuild.
 
 ## Size
 

@@ -26,7 +26,16 @@ export type TenantInput = {
   customDomain?: string | null
 }
 
-/** Create or update a tenant, keyed by its (unique) subdomain. */
+/**
+ * Create or update a tenant, keyed by its (unique) subdomain.
+ *
+ * Rebuild-safe (ADR 0001): on UPDATE we refresh only the spec-derived labels (`name`,
+ * `industry`). We deliberately do NOT touch `status` or `customDomain` here, because those
+ * are live routing / lifecycle metadata the platform owns out-of-band: a rebuild that
+ * blindly rewrote them would clear an attached custom domain (taking that site offline) or
+ * reset a live tenant's status (downgrading an active site, or un-suspending a suspended
+ * one). They are set on CREATE and changed elsewhere, never by a rebuild.
+ */
 export const upsertTenant = async (payload: Payload, input: TenantInput): Promise<Tenant> => {
   const subdomain = input.subdomain.trim().toLowerCase()
   const existing = await payload.find({
@@ -36,14 +45,10 @@ export const upsertTenant = async (payload: Payload, input: TenantInput): Promis
     depth: 0,
     overrideAccess: true,
   })
-  const data = {
-    name: input.name,
-    subdomain,
-    industry: input.industry ?? 'plumber',
-    status: input.status ?? 'pending',
-    customDomain: input.customDomain ?? null,
-  }
+
   if (existing.docs[0]) {
+    const data: Record<string, unknown> = { name: input.name }
+    if (input.industry !== undefined) data.industry = input.industry
     return payload.update({
       collection: 'tenants',
       id: existing.docs[0].id,
@@ -51,7 +56,18 @@ export const upsertTenant = async (payload: Payload, input: TenantInput): Promis
       overrideAccess: true,
     }) as Promise<Tenant>
   }
-  return payload.create({ collection: 'tenants', data, overrideAccess: true }) as Promise<Tenant>
+
+  return payload.create({
+    collection: 'tenants',
+    data: {
+      name: input.name,
+      subdomain,
+      industry: input.industry ?? 'plumber',
+      status: input.status ?? 'pending',
+      customDomain: input.customDomain ?? null,
+    },
+    overrideAccess: true,
+  }) as Promise<Tenant>
 }
 
 export type TenantAdminInput = {

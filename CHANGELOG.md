@@ -60,6 +60,9 @@ top. Build + tested locally only; deploy/provisioning is a later live step.
   renamed/removed item lingers until tidied by hand, and spec edits do not propagate to
   existing rows. The full clean reconciliation (tag engine vs owner content) is deferred to
   Phase 2: see `docs/decisions/0001-rebuild-content-reconciliation.md` and the rev-2 plan.
+  Rebuild also preserves live tenant routing/lifecycle metadata: `upsertTenant` no longer
+  overwrites `customDomain` or `status` on re-run (a clobber would have taken a custom-domain
+  site offline or reset a live tenant's status).
 
 ### Tooling
 - Vitest harness on a throwaway Docker Postgres (`npm test`, fully self-contained); 35

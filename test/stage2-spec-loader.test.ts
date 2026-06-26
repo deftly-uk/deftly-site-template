@@ -123,25 +123,47 @@ describe('Stage 2: loading a tenant from a spec', () => {
     expect(after.title).toBe('Edited by owner')
   })
 
-  it('rebuild is additive-safe — a customer edit survives a re-run (MVP, ADR 0001)', async () => {
-    // An owner edits content the normal way: a service detail and a per-tenant global field.
-    const svc = (
-      await payload.find({ collection: 'services', where: { tenant: { equals: tenant.id } }, limit: 1, sort: 'order', overrideAccess: true })
-    ).docs[0]
-    await payload.update({ collection: 'services', id: svc.id, data: { summary: 'OWNER EDIT keep me' }, overrideAccess: true })
+  it('rebuild is additive-safe — owner edits to a MATCHING row survive a re-run (MVP, ADR 0001)', async () => {
+    // Self-contained tenant (no shared mutable state): build, then the owner edits content
+    // the way the admin UI would (logged in, real access control), then we rebuild.
+    const s = uniqueSub('additive')
+    const email = `${s}@owner.test`
+    await loadTenantFromSpec(payload, PLUMBER_SAMPLE_INPUT, { subdomain: s, adminEmail: email, adminPassword: 'test-password-123', status: 'active' })
+    const t = (await payload.find({ collection: 'tenants', where: { subdomain: { equals: s } }, limit: 1, overrideAccess: true })).docs[0]
+    const { user } = await payload.login({ collection: 'users', data: { email, password: 'test-password-123' } })
 
-    const settings = (
-      await payload.find({ collection: 'site-settings', where: { tenant: { equals: tenant.id } }, limit: 1, overrideAccess: true })
-    ).docs[0]
-    await payload.update({ collection: 'site-settings', id: settings.id, data: { phone: '09999999999' }, overrideAccess: true })
+    // Edit a service's SUMMARY (title unchanged, so the spec still matches this row on
+    // rebuild) and a per-tenant global field, both as the logged-in owner.
+    const svc = (await payload.find({ collection: 'services', where: { tenant: { equals: t.id } }, sort: 'order', limit: 1, overrideAccess: true })).docs[0]
+    await payload.update({ collection: 'services', id: svc.id, data: { summary: 'OWNER EDIT keep me' }, overrideAccess: false, user })
+    const settings = (await payload.find({ collection: 'site-settings', where: { tenant: { equals: t.id } }, limit: 1, overrideAccess: true })).docs[0]
+    await payload.update({ collection: 'site-settings', id: settings.id, data: { phone: '09999999999' }, overrideAccess: false, user })
 
-    // Rebuild from the same spec. Additive-safe: existing rows are left untouched.
-    await loadTenantFromSpec(payload, PLUMBER_SAMPLE_INPUT, { subdomain: sub, provisionAdmin: false, status: 'active' })
+    const countBefore = (await payload.find({ collection: 'services', where: { tenant: { equals: t.id } }, limit: 100, overrideAccess: true })).totalDocs
+
+    // Rebuild from the same spec.
+    await loadTenantFromSpec(payload, PLUMBER_SAMPLE_INPUT, { subdomain: s, provisionAdmin: false, status: 'active' })
 
     const svcAfter = await payload.findByID({ collection: 'services', id: svc.id, overrideAccess: true })
-    expect(svcAfter.summary).toBe('OWNER EDIT keep me') // not overwritten by the spec
-
+    expect(svcAfter.summary).toBe('OWNER EDIT keep me') // the matching existing row was left untouched
+    const countAfter = (await payload.find({ collection: 'services', where: { tenant: { equals: t.id } }, limit: 100, overrideAccess: true })).totalDocs
+    expect(countAfter).toBe(countBefore) // no duplicate created for the matching service
     const settingsAfter = await payload.findByID({ collection: 'site-settings', id: settings.id, overrideAccess: true })
     expect(settingsAfter.phone).toBe('09999999999') // the global edit survived the rebuild
+  })
+
+  it('rebuild preserves live routing/lifecycle metadata (customDomain + status)', async () => {
+    const s = uniqueSub('domain')
+    // First build (pending), then the platform attaches a custom domain and goes live.
+    await loadTenantFromSpec(payload, PLUMBER_SAMPLE_INPUT, { subdomain: s, provisionAdmin: false, status: 'pending' })
+    const created = (await payload.find({ collection: 'tenants', where: { subdomain: { equals: s } }, limit: 1, overrideAccess: true })).docs[0]
+    await payload.update({ collection: 'tenants', id: created.id, data: { customDomain: 'myplumber.co.uk', status: 'active' }, overrideAccess: true })
+
+    // Rebuild the way the worker does: status 'pending', no customDomain provided.
+    await loadTenantFromSpec(payload, PLUMBER_SAMPLE_INPUT, { subdomain: s, provisionAdmin: false, status: 'pending' })
+
+    const after = (await payload.find({ collection: 'tenants', where: { subdomain: { equals: s } }, limit: 1, overrideAccess: true })).docs[0]
+    expect(after.customDomain).toBe('myplumber.co.uk') // not cleared → custom-domain site stays online
+    expect(after.status).toBe('active') // not downgraded back to pending
   })
 })
