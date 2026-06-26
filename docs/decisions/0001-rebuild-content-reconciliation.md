@@ -73,9 +73,18 @@ and rebuilds do nothing destructive.
 
 ## Consequences (what implementing this involves)
 
+> Scope note (after Codex review, 2026-06-26): this applies to **all** tenant content,
+> including the per-tenant globals `site-settings` and `home-page` (which a rebuild also
+> rewrites), not just the two list collections. The `origin`/`specKey` fields must be
+> protected server-side (not just hidden in the admin UI), and the rebuild must be
+> transactional and serialized per tenant. Full detail and the decided migration/backfill
+> policy live in the execution plan
+> (`docs/plans/2026-06-26-rebuild-content-reconciliation.md`, rev 2).
+
 - A hidden **origin** field on the spec-managed collections (`services`, `testimonials`,
-  and any future spec-driven list), recording `spec` vs `owner`. Ideally also a **stable
-  spec key** per item so a rename updates the same row instead of creating a duplicate.
+  `site-settings`, `home-page`, and any future spec-driven content), recording `spec` vs
+  `owner`. Ideally also a **stable spec key** per list item so a rename updates the same
+  row instead of creating a duplicate.
 - A **reconcile step** on rebuild: upsert by the stable key, delete `spec`-managed rows
   that are absent from the new spec, and never touch `owner` rows.
 - **Editing a spec-managed row in the admin promotes it to `owner`** (the engine stops
