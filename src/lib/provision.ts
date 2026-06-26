@@ -113,7 +113,14 @@ export const upsertTenantAdmin = async (payload: Payload, input: TenantAdminInpu
   }) as Promise<User>
 }
 
-/** Create or update the single per-tenant "global" row (site-settings or home-page). */
+/**
+ * Ensure the single per-tenant "global" row (site-settings or home-page) exists.
+ *
+ * Additive-safe (rebuild MVP, ADR 0001): if the row already exists it is **left untouched**,
+ * so a rebuild can never overwrite a customer's edits to their settings or home page. The
+ * spec only seeds the row on first build. The full "spec keeps updating untouched fields"
+ * behaviour is the Phase 2 ownership model.
+ */
 export const upsertTenantGlobal = async (
   payload: Payload,
   collection: 'site-settings' | 'home-page',
@@ -127,17 +134,20 @@ export const upsertTenantGlobal = async (
     depth: 0,
     overrideAccess: true,
   })
+  if (existing.docs[0]) return // additive-safe: never overwrite an existing per-tenant global
   const payloadData = { ...data, tenant: tenantId }
-  if (existing.docs[0]) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await payload.update({ collection, id: existing.docs[0].id, data: payloadData, overrideAccess: true } as any)
-  } else {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await payload.create({ collection, data: payloadData, overrideAccess: true } as any)
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await payload.create({ collection, data: payloadData, overrideAccess: true } as any)
 }
 
-/** Create or update a tenant-scoped content row, keyed by tenant + a match field. */
+/**
+ * Ensure a tenant-scoped content row exists, keyed by tenant + a match field.
+ *
+ * Additive-safe (rebuild MVP, ADR 0001): if a matching row already exists it is **left
+ * untouched**; only genuinely new items are created. A rebuild therefore never overwrites
+ * or deletes existing content. Trade-off: a renamed/removed item lingers until tidied by
+ * hand (Phase 2's ownership model reconciles those cleanly).
+ */
 export const upsertTenantDoc = async (
   payload: Payload,
   collection: 'services' | 'testimonials',
@@ -153,14 +163,10 @@ export const upsertTenantDoc = async (
     depth: 0,
     overrideAccess: true,
   })
+  if (existing.docs[0]) return // additive-safe: never overwrite existing content
   const payloadData = { ...data, tenant: tenantId }
-  if (existing.docs[0]) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await payload.update({ collection, id: existing.docs[0].id, data: payloadData, overrideAccess: true } as any)
-  } else {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await payload.create({ collection, data: payloadData, overrideAccess: true } as any)
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await payload.create({ collection, data: payloadData, overrideAccess: true } as any)
 }
 
 /** A full tenant content bundle: the two globals plus the list collections. */

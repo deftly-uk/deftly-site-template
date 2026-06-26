@@ -54,6 +54,12 @@ top. Build + tested locally only; deploy/provisioning is a later live step.
   `building` past `BUILD_JOB_STALE_MS` (default 15 min); the worker runs it before each
   claim, so a crashed worker no longer strands a job forever.
 - Pinned `@payloadcms/plugin-multi-tenant` to exact `3.85.1`; fixed migration whitespace.
+- **Rebuilds are additive-safe (interim MVP).** A rebuild now only adds new content from the
+  spec; it never overwrites or deletes existing `services`, `testimonials`, `site-settings`
+  or `home-page`, so a customer's edits can never be lost on re-run. Known limitation: a
+  renamed/removed item lingers until tidied by hand, and spec edits do not propagate to
+  existing rows. The full clean reconciliation (tag engine vs owner content) is deferred to
+  Phase 2: see `docs/decisions/0001-rebuild-content-reconciliation.md` and the rev-2 plan.
 
 ### Tooling
 - Vitest harness on a throwaway Docker Postgres (`npm test`, fully self-contained); 35

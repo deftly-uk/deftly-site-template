@@ -122,4 +122,26 @@ describe('Stage 2: loading a tenant from a spec', () => {
     const after = await payload.findByID({ collection: 'services', id: serviceId, overrideAccess: true })
     expect(after.title).toBe('Edited by owner')
   })
+
+  it('rebuild is additive-safe — a customer edit survives a re-run (MVP, ADR 0001)', async () => {
+    // An owner edits content the normal way: a service detail and a per-tenant global field.
+    const svc = (
+      await payload.find({ collection: 'services', where: { tenant: { equals: tenant.id } }, limit: 1, sort: 'order', overrideAccess: true })
+    ).docs[0]
+    await payload.update({ collection: 'services', id: svc.id, data: { summary: 'OWNER EDIT keep me' }, overrideAccess: true })
+
+    const settings = (
+      await payload.find({ collection: 'site-settings', where: { tenant: { equals: tenant.id } }, limit: 1, overrideAccess: true })
+    ).docs[0]
+    await payload.update({ collection: 'site-settings', id: settings.id, data: { phone: '09999999999' }, overrideAccess: true })
+
+    // Rebuild from the same spec. Additive-safe: existing rows are left untouched.
+    await loadTenantFromSpec(payload, PLUMBER_SAMPLE_INPUT, { subdomain: sub, provisionAdmin: false, status: 'active' })
+
+    const svcAfter = await payload.findByID({ collection: 'services', id: svc.id, overrideAccess: true })
+    expect(svcAfter.summary).toBe('OWNER EDIT keep me') // not overwritten by the spec
+
+    const settingsAfter = await payload.findByID({ collection: 'site-settings', id: settings.id, overrideAccess: true })
+    expect(settingsAfter.phone).toBe('09999999999') // the global edit survived the rebuild
+  })
 })
