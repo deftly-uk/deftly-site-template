@@ -2,6 +2,18 @@
 
 All notable changes to the Deftly Site Template are documented in this file.
 
+## [Unreleased] — live deploy (Phase 1 RUN 2)
+
+Deployed to Vercel (team "Harry's projects", Hobby) at `deftly-site-template.vercel.app`,
+connected to the Neon content DB and the shared CRM build queue via a least-privilege
+`deftly_engine` login (queue-only; cannot read leads). Multi-tenant migration applied to the
+(reset) Neon DB; the build worker was proven end to end against the live queue (CRM → queue →
+engine → tenant site). Domain `testplumber.deftly.uk` added to the project (awaiting one DNS
+record). `deploy.sh` added: one-command deploy that reads secrets from the shell environment
+(nothing sensitive stored in the file). `CONTROL_PLANE_DATABASE_URL` uses `sslmode=no-verify`
+on the Supabase pooler for now — switch to `verify-full` once the pooler cert is confirmed
+trusted in the runtime.
+
 ## [Unreleased] — shared-build-queue — point the queue at the CRM control plane (CODE ONLY)
 
 Makes `build_jobs` ONE shared queue instead of two copies in two databases. The engine's
