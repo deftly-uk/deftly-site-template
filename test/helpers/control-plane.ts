@@ -8,10 +8,11 @@ import type { Pool } from 'pg'
  * (deftly-app/supabase/migrations/0006_build_queue.sql) — the engine never creates it.
  *
  * Tests run against a throwaway Postgres that has no CRM migrations applied, so we stand
- * up a table of the SAME shape here. The cross-database foreign keys (lead_id → leads,
- * spec_id → lead_specs, created_by → users) are intentionally omitted: those tables live
- * in the CRM control plane, not here. `updated_at` is maintained explicitly by every
- * queue UPDATE (see build-jobs.ts), so no trigger is needed either.
+ * up a table of the SAME shape here. Only the cross-database FOREIGN KEYS (lead_id → leads,
+ * spec_id → lead_specs, created_by → users) are dropped — those parent tables live in the
+ * CRM control plane, not here — but every column, including `created_by`, is kept so the
+ * shape matches. `updated_at` is maintained explicitly by every queue UPDATE (see
+ * build-jobs.ts), so no trigger is needed either.
  *
  * Keep the column list in sync with 0006_build_queue.sql.
  */
@@ -32,6 +33,7 @@ export const ensureControlPlaneSchema = async (pool: Pool): Promise<void> => {
       started_at   timestamptz,
       ready_at     timestamptz,
       failed_at    timestamptz,
+      created_by   uuid,
       created_at   timestamptz not null default now(),
       updated_at   timestamptz not null default now()
     );
