@@ -60,6 +60,14 @@ reload the live site, see it change.
 - **Placeholder images are generated, not stock photos.** Real customer photos beat everything;
   the seed creates clean, on-brand gradient placeholders that the customer replaces with their
   own. Nothing is committed to the code.
+- **Rebuilds will protect customer edits (Option 2: tag engine-generated content).** A site can
+  be rebuilt from its spec; the rebuild must never delete content the customer added or changed
+  themselves. Decided to tag engine-made content so rebuilds only ever clean up their own items.
+  Full reasoning and the options weighed: [ADR 0001](./docs/decisions/0001-rebuild-content-reconciliation.md).
+  Approved, not yet built (see Phase 4 backlog).
+
+> Bigger "why we went this way" calls now live in the
+> [Architecture Decision Log](./docs/decisions/README.md).
 
 ---
 
@@ -116,6 +124,10 @@ reload the live site, see it change.
       built around a template that actually works).
 - [ ] Custom domain handling (likely Deftly buys and holds the domain on the customer's behalf).
 - [ ] Human-review vs full-automation decision for generation quality.
+- [ ] **Rebuild content reconciliation (Option 2 from [ADR 0001](./docs/decisions/0001-rebuild-content-reconciliation.md)).**
+      Tag engine-generated content so rebuilds update/remove only their own items and never touch
+      the customer's edits. Needs a hidden origin field + stable spec key, a migration, reconcile
+      logic, and tests (rename, removal, customer-add, customer-edit-then-rebuild).
 
 ### Engineering hygiene (cross-cutting, do alongside the above)
 
