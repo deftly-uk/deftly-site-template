@@ -1,17 +1,23 @@
 import { Pool } from 'pg'
 
 /**
- * The shared build queue (Stage 3).
+ * The shared build queue (Stage 3) — ONE queue across two systems.
  *
- * `build_jobs` is the ONE queue the CRM writes and the engine reads — its canonical
+ * `build_jobs` is the single queue the CRM writes and the engine reads. Its canonical
  * definition lives in the CRM repo (deftly-app/supabase/migrations/0006_build_queue.sql)
- * inside the shared control-plane database. It is NOT a Payload collection: it is plain
- * SQL the two systems share. For this code-only run we create a local table of the same
- * shape and drive its lifecycle.
+ * inside the shared CONTROL-PLANE database (the CRM's Supabase "deftly" project). It is
+ * NOT a Payload collection and it does NOT live in this engine's own (Neon) content DB.
  *
- * Foreign keys to leads/lead_specs/users are intentionally dropped here: those tables
- * live in the CRM control-plane, not in this engine's local DB. The columns are kept so
- * the shape matches exactly.
+ * Connection split (the whole point of this module):
+ *   - Tenant *content* → the engine's own DB via POSTGRES_URL (Payload).
+ *   - The build *queue* → the control plane via CONTROL_PLANE_DATABASE_URL (this module).
+ * Pointing the queue at the CRM's DB is what makes "rep marks Interested" actually reach
+ * the engine, and lets the worker write status + site_url back to the row the CRM shows.
+ *
+ * This engine never CREATEs the queue table in any real environment — the CRM migration
+ * owns it. Tests run against a throwaway Postgres that has no CRM migrations, so they
+ * stand the table up with a TEST-ONLY fixture (test/helpers/control-plane.ts) that mirrors
+ * the canonical shape (minus the cross-DB foreign keys, which point at CRM-only tables).
  *
  * Lifecycle:  queued → building → ready
  *                              └→ failed → (re-trigger) → queued
@@ -37,35 +43,27 @@ export type BuildJob = {
   updated_at: string
 }
 
-/** A pg Pool from the standard Postgres env. Caller owns the lifecycle (close it). */
-export const createPool = (connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URI): Pool => {
-  if (!connectionString) throw new Error('No Postgres connection string (POSTGRES_URL / DATABASE_URI).')
+/**
+ * A pg Pool connected to the CONTROL-PLANE database (the CRM's Supabase "deftly"
+ * project), where the shared `build_jobs` queue lives. This is deliberately a different
+ * connection from the engine's own content DB (POSTGRES_URL / Payload): the queue is
+ * shared, the tenant content is not.
+ *
+ * There is NO fallback to POSTGRES_URL on purpose — silently running the queue against
+ * the engine's own DB is exactly the split-brain bug this change fixes, so a missing
+ * CONTROL_PLANE_DATABASE_URL fails loudly. The Supabase connection string must enable SSL
+ * (append `?sslmode=require`); in tests this points at the throwaway Postgres.
+ *
+ * Caller owns the lifecycle (close it).
+ */
+export const createControlPlanePool = (connectionString = process.env.CONTROL_PLANE_DATABASE_URL): Pool => {
+  if (!connectionString) {
+    throw new Error(
+      'No control-plane connection string. Set CONTROL_PLANE_DATABASE_URL to the CRM ' +
+        'Supabase "deftly" database (the one that owns the shared build_jobs queue).',
+    )
+  }
   return new Pool({ connectionString })
-}
-
-/** Create the build_jobs table if it doesn't exist (mirrors the CRM shape). */
-export const ensureBuildJobsTable = async (pool: Pool): Promise<void> => {
-  await pool.query(`
-    create table if not exists build_jobs (
-      id           uuid primary key default gen_random_uuid(),
-      lead_id      uuid,
-      spec_id      uuid,
-      spec_version integer not null,
-      spec         jsonb not null,
-      status       text not null default 'queued'
-                     check (status in ('queued','building','ready','failed')),
-      error        text,
-      site_url     text,
-      attempts     integer not null default 1,
-      queued_at    timestamptz not null default now(),
-      started_at   timestamptz,
-      ready_at     timestamptz,
-      failed_at    timestamptz,
-      created_at   timestamptz not null default now(),
-      updated_at   timestamptz not null default now()
-    );
-    create index if not exists idx_build_jobs_status_queued on build_jobs (status, queued_at);
-  `)
 }
 
 /** Enqueue a job (in production the CRM does this; here it's used by tests/seeds). */

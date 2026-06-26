@@ -23,6 +23,10 @@ export default defineConfig({
     env: {
       POSTGRES_URL: process.env.TEST_DATABASE_URI || 'postgresql://postgres:postgres@localhost:55432/deftly_test',
       DATABASE_URI: process.env.TEST_DATABASE_URI || 'postgresql://postgres:postgres@localhost:55432/deftly_test',
+      // The shared build queue lives on the control plane (the CRM's DB). In production
+      // that's a separate Supabase project; in tests we point it at the same throwaway
+      // Postgres so the queue lifecycle is exercised end to end without a second DB.
+      CONTROL_PLANE_DATABASE_URL: process.env.TEST_DATABASE_URI || 'postgresql://postgres:postgres@localhost:55432/deftly_test',
       PAYLOAD_SECRET: 'test-secret-not-real',
       PAYLOAD_DB_PUSH: 'true',
       NEXT_PUBLIC_SERVER_URL: 'http://localhost:3000',
