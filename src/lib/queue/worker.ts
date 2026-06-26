@@ -1,6 +1,7 @@
 import type { Pool } from 'pg'
 import type { Payload } from 'payload'
 
+import { sendSiteReadyEmail, type SiteReadyResult } from '@/lib/email'
 import { loadTenantFromSpec } from '@/lib/spec/load-tenant'
 import { safeParseSiteSpec } from '@/lib/spec/schema'
 import type { Tenant } from '@/payload-types'
@@ -34,13 +35,30 @@ export const subdomainForJob = (businessName: string, jobId: string): string => 
   return `${slug || 'site'}-${suffix}`
 }
 
-/** The preview URL the engine records (placeholder until real preview/deploy lands). */
-export const previewUrlFor = (subdomain: string, baseDomain = process.env.PREVIEW_BASE_DOMAIN || 'preview.deftly.app'): string =>
-  `https://${subdomain}.${baseDomain}`
+/**
+ * The live URL the engine records for a built site.
+ *
+ * Two modes, chosen by env so we can ship a working link today and upgrade later with no
+ * code change:
+ *   - PATH mode (PREVIEW_PATH_BASE set, e.g. https://deftly-site-template.vercel.app/s):
+ *     `<base>/<subdomain>` — served on the engine's own (already-verified) domain via the
+ *     `/s/:sub` rewrite middleware. Needs NO per-subdomain DNS, so every built site has a
+ *     working link immediately.
+ *   - SUBDOMAIN mode (default): `https://<subdomain>.<PREVIEW_BASE_DOMAIN>` — the eventual
+ *     home once a wildcard `*.deftly.uk` (or similar) is pointed at the engine.
+ */
+export const previewUrlFor = (
+  subdomain: string,
+  baseDomain = process.env.PREVIEW_BASE_DOMAIN || 'preview.deftly.app',
+): string => {
+  const pathBase = process.env.PREVIEW_PATH_BASE?.trim()
+  if (pathBase) return `${pathBase.replace(/\/+$/, '')}/${subdomain}`
+  return `https://${subdomain}.${baseDomain}`
+}
 
 export type BuildOutcome =
   | { claimed: false }
-  | { claimed: true; status: 'ready'; job: BuildJob; tenant: Tenant; siteUrl: string }
+  | { claimed: true; status: 'ready'; job: BuildJob; tenant: Tenant; siteUrl: string; email: SiteReadyResult }
   | { claimed: true; status: 'failed'; job: BuildJob; error: string }
 
 /**
@@ -68,7 +86,20 @@ export const runBuildOnce = async (payload: Payload, pool: Pool): Promise<BuildO
     const siteUrl = previewUrlFor(subdomain)
 
     await markBuildJobReady(pool, job.id, siteUrl)
-    return { claimed: true, status: 'ready', job, tenant, siteUrl }
+
+    // Self-serve delivery: email the link the moment it's ready. The recipient rides in the
+    // spec snapshot (the worker can't read the CRM's leads table). Email failures never fail
+    // the build — the job is already `ready`.
+    const notifyTo = parsed.data.contact.notificationEmail ?? parsed.data.contact.enquiryEmail
+    const email = await sendSiteReadyEmail({
+      businessName: parsed.data.identity.businessName,
+      siteUrl,
+      to: notifyTo,
+    })
+    if (email.sent) payload.logger?.info?.(`✉️  Ready email sent for job ${job.id} → ${email.to} (${email.id ?? 'no-id'})`)
+    else payload.logger?.warn?.(`✉️  Ready email NOT sent for job ${job.id}: ${email.reason ?? 'unknown'}`)
+
+    return { claimed: true, status: 'ready', job, tenant, siteUrl, email }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     payload.logger?.error?.(`Build job ${job.id} failed: ${message}`)

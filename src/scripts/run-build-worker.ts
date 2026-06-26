@@ -29,7 +29,8 @@ const main = async (): Promise<void> => {
     }
     for (const o of outcomes) {
       if (o.claimed && o.status === 'ready') {
-        payload.logger.info(`✅ Built "${o.tenant.name}" → ${o.siteUrl} (job ${o.job.id})`)
+        const mail = o.email.sent ? `emailed ${o.email.to}` : `email skipped (${o.email.reason ?? 'unknown'})`
+        payload.logger.info(`✅ Built "${o.tenant.name}" → ${o.siteUrl} — ${mail} (job ${o.job.id})`)
       } else if (o.claimed && o.status === 'failed') {
         payload.logger.error(`❌ Job ${o.job.id} failed: ${o.error}`)
       }
