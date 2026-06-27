@@ -148,7 +148,7 @@ export const recoverStaleBuildJobs = async (
 }
 
 /** Mark a claimed job ready, recording the preview/live URL the engine produced. */
-export const markBuildJobReady = async (pool: Pool, id: string, siteUrl: string): Promise<void> => {
+export const markBuildJobReady = async (pool: Pool, id: string, siteUrl: string | null): Promise<void> => {
   await pool.query(
     `update build_jobs set status = 'ready', site_url = $2, ready_at = now(), error = null, updated_at = now() where id = $1`,
     [id, siteUrl],

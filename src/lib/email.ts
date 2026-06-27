@@ -209,7 +209,7 @@ export const buildSiteReadyEmail = (input: {
  */
 export const sendSiteReadyEmail = async (input: {
   businessName: string
-  siteUrl: string
+  siteUrl: string | null | undefined
   to: string | null | undefined
 }): Promise<SiteReadyResult> => {
   const apiKey = process.env.RESEND_API_KEY

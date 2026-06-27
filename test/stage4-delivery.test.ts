@@ -29,6 +29,12 @@ describe('Stage 4: delivery', () => {
   })
 
   describe('previewUrlFor', () => {
+    it('does not invent a placeholder domain when no preview base is configured', () => {
+      delete process.env.PREVIEW_PATH_BASE
+      delete process.env.PREVIEW_BASE_DOMAIN
+      expect(previewUrlFor('acme-123abc')).toBeNull()
+    })
+
     it('uses subdomain mode by default', () => {
       delete process.env.PREVIEW_PATH_BASE
       process.env.PREVIEW_BASE_DOMAIN = 'deftly.uk'
@@ -61,6 +67,15 @@ describe('Stage 4: delivery', () => {
       process.env.RESEND_API_KEY = 'test-key-not-used'
       process.env.CONTACT_TO_EMAIL_FALLBACK = 'fallback@b.test'
       const res = await sendSiteReadyEmail({ businessName: 'Acme', siteUrl: '   ', to: 'a@b.test' })
+      expect(res.sent).toBe(false)
+      expect(res.reason).toBe('no-link')
+    })
+
+    it('never sends when the preview URL builder could not produce a real link', async () => {
+      delete process.env.PREVIEW_PATH_BASE
+      delete process.env.PREVIEW_BASE_DOMAIN
+      process.env.RESEND_API_KEY = 'test-key-not-used'
+      const res = await sendSiteReadyEmail({ businessName: 'Acme', siteUrl: previewUrlFor('acme-123abc'), to: 'a@b.test' })
       expect(res.sent).toBe(false)
       expect(res.reason).toBe('no-link')
     })

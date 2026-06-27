@@ -44,21 +44,23 @@ export const subdomainForJob = (businessName: string, jobId: string): string => 
  *     `<base>/<subdomain>` — served on the engine's own (already-verified) domain via the
  *     `/s/:sub` rewrite middleware. Needs NO per-subdomain DNS, so every built site has a
  *     working link immediately.
- *   - SUBDOMAIN mode (default): `https://<subdomain>.<PREVIEW_BASE_DOMAIN>` — the eventual
- *     home once a wildcard `*.deftly.uk` (or similar) is pointed at the engine.
+ *   - SUBDOMAIN mode (PREVIEW_BASE_DOMAIN set): `https://<subdomain>.<base>` — the
+ *     eventual home once a wildcard `*.deftly.uk` (or similar) is pointed at the engine.
+ * If neither base is configured, no preview URL is recorded and delivery email is skipped.
  */
 export const previewUrlFor = (
   subdomain: string,
-  baseDomain = process.env.PREVIEW_BASE_DOMAIN || 'preview.deftly.app',
-): string => {
+  baseDomain = process.env.PREVIEW_BASE_DOMAIN?.trim(),
+): string | null => {
   const pathBase = process.env.PREVIEW_PATH_BASE?.trim()
   if (pathBase) return `${pathBase.replace(/\/+$/, '')}/${subdomain}`
-  return `https://${subdomain}.${baseDomain}`
+  if (baseDomain) return `https://${subdomain}.${baseDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '')}`
+  return null
 }
 
 export type BuildOutcome =
   | { claimed: false }
-  | { claimed: true; status: 'ready'; job: BuildJob; tenant: Tenant; siteUrl: string; email: SiteReadyResult }
+  | { claimed: true; status: 'ready'; job: BuildJob; tenant: Tenant; siteUrl: string | null; email: SiteReadyResult }
   | { claimed: true; status: 'failed'; job: BuildJob; error: string }
 
 /**
