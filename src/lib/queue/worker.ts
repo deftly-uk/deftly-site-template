@@ -48,13 +48,32 @@ export const subdomainForJob = (businessName: string, jobId: string): string => 
  *     eventual home once a wildcard `*.deftly.uk` (or similar) is pointed at the engine.
  * If neither base is configured, no preview URL is recorded and delivery email is skipped.
  */
+/**
+ * Known placeholder preview bases that do NOT have real wildcard DNS — emailing
+ * `https://<sub>.<placeholder>` would hand the customer a link that won't
+ * resolve, so we refuse to build one.
+ */
+const PLACEHOLDER_PREVIEW_DOMAINS = new Set(['preview.deftly.app'])
+
 export const previewUrlFor = (
   subdomain: string,
   baseDomain = process.env.PREVIEW_BASE_DOMAIN?.trim(),
 ): string | null => {
   const pathBase = process.env.PREVIEW_PATH_BASE?.trim()
-  if (pathBase) return `${pathBase.replace(/\/+$/, '')}/${subdomain}`
-  if (baseDomain) return `https://${subdomain}.${baseDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '')}`
+  // PATH mode is served by the `/s/:sub` rewrite, which relies on the tenant-header
+  // override. In production that override is OFF unless ALLOW_TENANT_HEADER_OVERRIDE=true
+  // (see tenant.ts), so a path link would 404 — don't hand one out unless it'll resolve.
+  const overrideHonoured =
+    process.env.NODE_ENV !== 'production' || process.env.ALLOW_TENANT_HEADER_OVERRIDE === 'true'
+  if (pathBase && overrideHonoured) return `${pathBase.replace(/\/+$/, '')}/${subdomain}`
+
+  // SUBDOMAIN mode needs REAL wildcard DNS; refuse known non-resolving placeholders.
+  if (baseDomain) {
+    const normalized = baseDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '').toLowerCase()
+    if (normalized && !PLACEHOLDER_PREVIEW_DOMAINS.has(normalized)) {
+      return `https://${subdomain}.${normalized}`
+    }
+  }
   return null
 }
 

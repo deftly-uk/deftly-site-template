@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { buildSiteReadyEmail, sendSiteReadyEmail } from '@/lib/email'
 import { previewUrlFor } from '@/lib/queue/worker'
@@ -26,6 +26,7 @@ describe('Stage 4: delivery', () => {
       if (saved[k] === undefined) delete process.env[k]
       else process.env[k] = saved[k]
     }
+    vi.unstubAllEnvs()
   })
 
   describe('previewUrlFor', () => {
@@ -44,6 +45,27 @@ describe('Stage 4: delivery', () => {
     it('uses path mode when PREVIEW_PATH_BASE is set (trailing slash tolerated)', () => {
       process.env.PREVIEW_PATH_BASE = 'https://deftly-site-template.vercel.app/s/'
       expect(previewUrlFor('acme-123abc')).toBe('https://deftly-site-template.vercel.app/s/acme-123abc')
+    })
+
+    it('refuses a path-mode link in production when the tenant-header override is off (it would 404)', () => {
+      process.env.PREVIEW_PATH_BASE = 'https://deftly-site-template.vercel.app/s'
+      delete process.env.PREVIEW_BASE_DOMAIN
+      vi.stubEnv('NODE_ENV', 'production')
+      vi.stubEnv('ALLOW_TENANT_HEADER_OVERRIDE', 'false')
+      expect(previewUrlFor('acme-123abc')).toBeNull()
+    })
+
+    it('allows a path-mode link in production once the override is enabled', () => {
+      process.env.PREVIEW_PATH_BASE = 'https://deftly-site-template.vercel.app/s'
+      vi.stubEnv('NODE_ENV', 'production')
+      vi.stubEnv('ALLOW_TENANT_HEADER_OVERRIDE', 'true')
+      expect(previewUrlFor('acme-123abc')).toBe('https://deftly-site-template.vercel.app/s/acme-123abc')
+    })
+
+    it('refuses the known placeholder subdomain base (no real wildcard DNS)', () => {
+      delete process.env.PREVIEW_PATH_BASE
+      process.env.PREVIEW_BASE_DOMAIN = 'preview.deftly.app'
+      expect(previewUrlFor('acme-123abc')).toBeNull()
     })
   })
 
