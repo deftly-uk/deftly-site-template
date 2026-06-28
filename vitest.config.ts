@@ -30,6 +30,7 @@ export default defineConfig({
       PAYLOAD_SECRET: 'test-secret-not-real',
       PAYLOAD_DB_PUSH: 'true',
       NEXT_PUBLIC_SERVER_URL: 'http://localhost:3000',
+      PREVIEW_PATH_BASE: 'http://localhost:3000/s',
       ROOT_DOMAIN: 'localhost',
     },
   },

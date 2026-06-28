@@ -84,9 +84,119 @@ export const sendEnquiryEmail = async (
 
 export type SiteReadyResult = SendResult & { id?: string; to?: string }
 
+export type SiteReadyEmail = { subject: string; text: string; html: string }
+
 /**
- * Tell the customer their freshly-built website is live, with the link. Sent by the build
- * worker the moment a job reaches `ready` (Stage 4 — self-serve delivery).
+ * Optional, env-tunable copy bits — chosen so we never invent specifics we don't
+ * have yet (a wrong price/number in a customer email is worse than omitting it):
+ *   SITE_READY_REP_NAME      sign-off name              (default "The Deftly team")
+ *   SITE_READY_PRICE         e.g. "£295"                (omitted from the button if unset)
+ *   SITE_READY_CONTACT_PHONE a call-back number         (falls back to "just reply")
+ *   SITE_READY_CHECKOUT_URL  real Stripe checkout link  (the on/off flag — see below)
+ *   SITE_READY_PAYMENT="off" hide the payment block entirely
+ *
+ * Payment button (plan): greyed-out by default behind an on/off flag, so it flips
+ * to a real checkout the day Stripe is ready — no copy change needed. Until then it
+ * is a styled grey box (email clients ignore real "disabled" buttons) reading
+ * "Secure checkout: available shortly".
+ */
+const readReadyEmailEnv = () => ({
+  repName: process.env.SITE_READY_REP_NAME?.trim() || 'The Deftly team',
+  price: process.env.SITE_READY_PRICE?.trim() || '',
+  phone: process.env.SITE_READY_CONTACT_PHONE?.trim() || '',
+  checkoutUrl: process.env.SITE_READY_CHECKOUT_URL?.trim() || '',
+  paymentOff: process.env.SITE_READY_PAYMENT?.trim().toLowerCase() === 'off',
+})
+
+/**
+ * Build the conversion-oriented "your website is ready" email (plan §"Email").
+ * Pure + side-effect-free so the copy is unit-testable. No em dashes. The hold is
+ * softened to something the system can actually honour ("I can only keep this
+ * preview open for a few days") — it never promises to release a site/address.
+ */
+export const buildSiteReadyEmail = (input: {
+  businessName: string
+  siteUrl: string
+  env?: ReturnType<typeof readReadyEmailEnv>
+}): SiteReadyEmail => {
+  const env = input.env ?? readReadyEmailEnv()
+  const business = input.businessName || 'your business'
+  const url = input.siteUrl
+  const claimLabel = env.price ? `Claim my website for ${env.price}` : 'Claim my website'
+  const contactLine = env.phone
+    ? `just reply to this email or call me on ${env.phone}`
+    : 'just reply to this email'
+
+  const subject = `Your new ${business} website is ready (yours to claim for a few days)`
+
+  // — plain text —
+  const paymentText = env.paymentOff
+    ? []
+    : env.checkoutUrl
+      ? ['', `   ${claimLabel}: ${env.checkoutUrl}`]
+      : ['', `   [ ${claimLabel} ]`, '   Secure checkout: available shortly.']
+
+  const text = [
+    'Hi there,',
+    '',
+    `Thanks for taking my call earlier. As promised, I've built you a free preview of a`,
+    `brand-new website for ${business}. Nothing to pay, nothing to set up: just take a`,
+    'look and tell me what you think.',
+    '',
+    `   View your free website:  ${url}`,
+    '',
+    `It's built for a local plumber: your services, the areas you cover, and a big`,
+    '"call now" button so customers reach you straight from their phone.',
+    '',
+    'Two quick things:',
+    " - I can only keep this preview open for a few days, so do take a look while it's here.",
+    " - Going live takes a couple of minutes and it's up the same day.",
+    ...paymentText,
+    '',
+    'No pressure: have a look, show the family, and let me know what you think.',
+    '',
+    `Any questions, ${contactLine}.`,
+    '',
+    'Cheers,',
+    env.repName,
+    'Deftly: local websites, done properly',
+  ].join('\n')
+
+  // — html —
+  const button = (label: string, href: string) =>
+    `<a href="${escapeHtml(href)}" style="background:#173A5E;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">${escapeHtml(label)}</a>`
+
+  const paymentHtml = env.paymentOff
+    ? ''
+    : env.checkoutUrl
+      ? `<p style="margin:24px 0">${button(claimLabel, env.checkoutUrl)}</p>`
+      : `<div style="margin:24px 0">
+           <div style="background:#e2e8f0;color:#64748b;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">${escapeHtml(claimLabel)}</div>
+           <div style="color:#94a3b8;font-size:13px;margin-top:6px">Secure checkout: available shortly.</div>
+         </div>`
+
+  const html = `
+    <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#0f172a;line-height:1.5">
+      <p>Hi there,</p>
+      <p>Thanks for taking my call earlier. As promised, I've built you a free preview of a brand-new website for <strong>${escapeHtml(business)}</strong>. Nothing to pay, nothing to set up: just take a look and tell me what you think.</p>
+      <p style="margin:24px 0">${button('View your free website', url)}</p>
+      <p style="color:#475569;font-size:14px">Or paste this into your browser:<br><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>
+      <p>It's built for a local plumber: your services, the areas you cover, and a big "call now" button so customers reach you straight from their phone.</p>
+      <ul style="color:#334155;padding-left:18px">
+        <li>I can only keep this preview open for a few days, so do take a look while it's here.</li>
+        <li>Going live takes a couple of minutes and it's up the same day.</li>
+      </ul>
+      ${paymentHtml}
+      <p style="color:#475569;font-size:14px">No pressure: have a look, show the family, and any questions, ${escapeHtml(contactLine)}.</p>
+      <p style="color:#94a3b8;font-size:13px;margin-top:24px">Cheers,<br>${escapeHtml(env.repName)}<br>Deftly: local websites, done properly</p>
+    </div>`
+
+  return { subject, text, html }
+}
+
+/**
+ * Send the "your website is ready" email the moment a build reaches `ready`
+ * (Stage 4 — self-serve delivery).
  *
  * The recipient MUST come from the build job's spec snapshot: the worker's database login
  * can read the build queue but NOT the CRM's `leads` table, so the contact email travels
@@ -99,7 +209,7 @@ export type SiteReadyResult = SendResult & { id?: string; to?: string }
  */
 export const sendSiteReadyEmail = async (input: {
   businessName: string
-  siteUrl: string
+  siteUrl: string | null | undefined
   to: string | null | undefined
 }): Promise<SiteReadyResult> => {
   const apiKey = process.env.RESEND_API_KEY
@@ -108,7 +218,21 @@ export const sendSiteReadyEmail = async (input: {
     process.env.CONTACT_FROM_EMAIL ||
     'Deftly <onboarding@resend.dev>'
   const to = input.to?.trim() || process.env.CONTACT_TO_EMAIL_FALLBACK?.trim()
+  const url = input.siteUrl?.trim()
 
+  // Never send a dead link: skip unless the URL is a routable absolute http(s) link.
+  // A bare domain string (e.g. "preview.deftly.app/foo") or empty string both fail.
+  let isRoutableUrl = false
+  if (url) {
+    try {
+      const { protocol } = new URL(url)
+      isRoutableUrl = protocol === 'http:' || protocol === 'https:'
+    } catch { /* malformed — not routable */ }
+  }
+  if (!isRoutableUrl) {
+    console.warn('[site-ready] No routable site URL — notification email skipped.')
+    return { sent: false, reason: 'no-link' }
+  }
   if (!apiKey) {
     console.warn('[site-ready] RESEND_API_KEY not set — build is ready, notification email skipped.')
     return { sent: false, reason: 'no-api-key' }
@@ -118,29 +242,10 @@ export const sendSiteReadyEmail = async (input: {
     return { sent: false, reason: 'no-recipient' }
   }
 
-  const business = input.businessName || 'your business'
-  const url = input.siteUrl
-  const subject = `Your new website is ready — ${business}`
-  const text = [
-    `Good news — the website we built for ${business} is live and ready to view:`,
-    '',
-    url,
-    '',
-    'Open the link to see it. This is an early preview you can refine; reply to this email with anything you want changed.',
-    '',
-    '— Deftly',
-  ].join('\n')
-  const html = `
-    <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#0f172a">
-      <h2 style="color:#173A5E;margin-bottom:4px">Your new website is ready 🎉</h2>
-      <p>The website we built for <strong>${escapeHtml(business)}</strong> is live and ready to view:</p>
-      <p style="margin:24px 0">
-        <a href="${escapeHtml(url)}" style="background:#173A5E;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">View your website</a>
-      </p>
-      <p style="color:#475569;font-size:14px">Or paste this into your browser:<br><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>
-      <p style="color:#475569;font-size:14px;margin-top:16px">This is an early preview you can refine. Reply to this email with anything you'd like changed.</p>
-      <p style="color:#94a3b8;font-size:13px;margin-top:24px">— Deftly</p>
-    </div>`
+  const { subject, text, html } = buildSiteReadyEmail({
+    businessName: input.businessName,
+    siteUrl: url!, // safe: isRoutableUrl true implies url is a non-empty string
+  })
 
   try {
     const resend = new Resend(apiKey)

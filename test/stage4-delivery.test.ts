@@ -1,7 +1,15 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { sendSiteReadyEmail } from '@/lib/email'
+import { buildSiteReadyEmail, sendSiteReadyEmail } from '@/lib/email'
 import { previewUrlFor } from '@/lib/queue/worker'
+
+const baseEnv = {
+  repName: 'The Deftly team',
+  price: '',
+  phone: '',
+  checkoutUrl: '',
+  paymentOff: false,
+}
 
 /**
  * STAGE 4 — self-serve delivery. The link the worker records and the "site is ready"
@@ -18,9 +26,16 @@ describe('Stage 4: delivery', () => {
       if (saved[k] === undefined) delete process.env[k]
       else process.env[k] = saved[k]
     }
+    vi.unstubAllEnvs()
   })
 
   describe('previewUrlFor', () => {
+    it('does not invent a placeholder domain when no preview base is configured', () => {
+      delete process.env.PREVIEW_PATH_BASE
+      delete process.env.PREVIEW_BASE_DOMAIN
+      expect(previewUrlFor('acme-123abc')).toBeNull()
+    })
+
     it('uses subdomain mode by default', () => {
       delete process.env.PREVIEW_PATH_BASE
       process.env.PREVIEW_BASE_DOMAIN = 'deftly.uk'
@@ -30,6 +45,27 @@ describe('Stage 4: delivery', () => {
     it('uses path mode when PREVIEW_PATH_BASE is set (trailing slash tolerated)', () => {
       process.env.PREVIEW_PATH_BASE = 'https://deftly-site-template.vercel.app/s/'
       expect(previewUrlFor('acme-123abc')).toBe('https://deftly-site-template.vercel.app/s/acme-123abc')
+    })
+
+    it('refuses a path-mode link in production when the tenant-header override is off (it would 404)', () => {
+      process.env.PREVIEW_PATH_BASE = 'https://deftly-site-template.vercel.app/s'
+      delete process.env.PREVIEW_BASE_DOMAIN
+      vi.stubEnv('NODE_ENV', 'production')
+      vi.stubEnv('ALLOW_TENANT_HEADER_OVERRIDE', 'false')
+      expect(previewUrlFor('acme-123abc')).toBeNull()
+    })
+
+    it('allows a path-mode link in production once the override is enabled', () => {
+      process.env.PREVIEW_PATH_BASE = 'https://deftly-site-template.vercel.app/s'
+      vi.stubEnv('NODE_ENV', 'production')
+      vi.stubEnv('ALLOW_TENANT_HEADER_OVERRIDE', 'true')
+      expect(previewUrlFor('acme-123abc')).toBe('https://deftly-site-template.vercel.app/s/acme-123abc')
+    })
+
+    it('refuses the known placeholder subdomain base (no real wildcard DNS)', () => {
+      delete process.env.PREVIEW_PATH_BASE
+      process.env.PREVIEW_BASE_DOMAIN = 'preview.deftly.app'
+      expect(previewUrlFor('acme-123abc')).toBeNull()
     })
   })
 
@@ -47,6 +83,94 @@ describe('Stage 4: delivery', () => {
       const res = await sendSiteReadyEmail({ businessName: 'Acme', siteUrl: 'https://x/s/acme', to: null })
       expect(res.sent).toBe(false)
       expect(res.reason).toBe('no-recipient')
+    })
+
+    it('never sends a dead link: skips when the site URL is empty', async () => {
+      process.env.RESEND_API_KEY = 'test-key-not-used'
+      process.env.CONTACT_TO_EMAIL_FALLBACK = 'fallback@b.test'
+      const res = await sendSiteReadyEmail({ businessName: 'Acme', siteUrl: '   ', to: 'a@b.test' })
+      expect(res.sent).toBe(false)
+      expect(res.reason).toBe('no-link')
+    })
+
+    it('never sends when the preview URL builder could not produce a real link', async () => {
+      delete process.env.PREVIEW_PATH_BASE
+      delete process.env.PREVIEW_BASE_DOMAIN
+      process.env.RESEND_API_KEY = 'test-key-not-used'
+      const res = await sendSiteReadyEmail({ businessName: 'Acme', siteUrl: previewUrlFor('acme-123abc'), to: 'a@b.test' })
+      expect(res.sent).toBe(false)
+      expect(res.reason).toBe('no-link')
+    })
+
+    it('skips when the site URL is a bare domain (not an absolute http/s link)', async () => {
+      // e.g. PREVIEW_BASE_DOMAIN was set to a placeholder with no wildcard DNS;
+      // a misconfiguration could produce a string like "preview.deftly.app/foo".
+      delete process.env.RESEND_API_KEY
+      const res = await sendSiteReadyEmail({ businessName: 'Acme', siteUrl: 'preview.deftly.app/foo', to: 'a@b.test' })
+      expect(res.sent).toBe(false)
+      expect(res.reason).toBe('no-link')
+    })
+
+    it('passes the URL guard for a valid absolute path-mode link', async () => {
+      // Should proceed past the URL check; with no API key it stops at no-api-key, not no-link.
+      delete process.env.RESEND_API_KEY
+      const res = await sendSiteReadyEmail({
+        businessName: 'Acme',
+        siteUrl: 'https://engine.example.com/s/acme',
+        to: 'a@b.test',
+      })
+      expect(res.sent).toBe(false)
+      expect(res.reason).not.toBe('no-link')
+    })
+  })
+
+  describe('buildSiteReadyEmail copy', () => {
+    const build = (over: Partial<typeof baseEnv> = {}) =>
+      buildSiteReadyEmail({
+        businessName: 'Acme Plumbing',
+        siteUrl: 'https://deftly-site-template.vercel.app/s/acme-123abc',
+        env: { ...baseEnv, ...over },
+      })
+
+    it('is a conversion email: business name + claim-for-a-few-days, with the link', () => {
+      const { subject, text, html } = build()
+      expect(subject).toContain('Acme Plumbing')
+      expect(subject.toLowerCase()).toContain('claim')
+      expect(text).toContain('https://deftly-site-template.vercel.app/s/acme-123abc')
+      expect(html).toContain('https://deftly-site-template.vercel.app/s/acme-123abc')
+    })
+
+    it('softens the hold — never promises to release the site/address', () => {
+      const { text } = build()
+      expect(text).toContain('I can only keep this preview open for a few days')
+      expect(text.toLowerCase()).not.toContain('release')
+    })
+
+    it('contains no em dashes (house style)', () => {
+      const { subject, text, html } = build()
+      for (const s of [subject, text, html]) expect(s).not.toContain('—')
+    })
+
+    it('greyed payment teaser by default; real button when a checkout URL is set', () => {
+      const greyed = build()
+      expect(greyed.text).toContain('Secure checkout: available shortly')
+      expect(greyed.html).not.toContain('href="https://pay.example')
+
+      const live = build({ checkoutUrl: 'https://pay.example/acme', price: '£295' })
+      expect(live.html).toContain('href="https://pay.example/acme"')
+      expect(live.text).toContain('Claim my website for £295')
+      expect(live.text).not.toContain('available shortly')
+    })
+
+    it('hides the payment block entirely when turned off', () => {
+      const off = build({ paymentOff: true })
+      expect(off.text).not.toContain('Claim my website')
+      expect(off.html).not.toContain('Claim my website')
+    })
+
+    it('uses a reply-only contact line unless a phone is configured', () => {
+      expect(build().text).toContain('just reply to this email')
+      expect(build({ phone: '01234 567890' }).text).toContain('call me on 01234 567890')
     })
   })
 })
