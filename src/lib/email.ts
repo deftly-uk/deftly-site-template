@@ -220,9 +220,17 @@ export const sendSiteReadyEmail = async (input: {
   const to = input.to?.trim() || process.env.CONTACT_TO_EMAIL_FALLBACK?.trim()
   const url = input.siteUrl?.trim()
 
-  // Never send a dead link: if the preview URL base was unset the link is useless.
-  if (!url) {
-    console.warn('[site-ready] No site URL — notification email skipped.')
+  // Never send a dead link: skip unless the URL is a routable absolute http(s) link.
+  // A bare domain string (e.g. "preview.deftly.app/foo") or empty string both fail.
+  let isRoutableUrl = false
+  if (url) {
+    try {
+      const { protocol } = new URL(url)
+      isRoutableUrl = protocol === 'http:' || protocol === 'https:'
+    } catch { /* malformed — not routable */ }
+  }
+  if (!isRoutableUrl) {
+    console.warn('[site-ready] No routable site URL — notification email skipped.')
     return { sent: false, reason: 'no-link' }
   }
   if (!apiKey) {
@@ -236,7 +244,7 @@ export const sendSiteReadyEmail = async (input: {
 
   const { subject, text, html } = buildSiteReadyEmail({
     businessName: input.businessName,
-    siteUrl: url,
+    siteUrl: url!, // safe: isRoutableUrl true implies url is a non-empty string
   })
 
   try {

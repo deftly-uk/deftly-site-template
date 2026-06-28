@@ -79,6 +79,27 @@ describe('Stage 4: delivery', () => {
       expect(res.sent).toBe(false)
       expect(res.reason).toBe('no-link')
     })
+
+    it('skips when the site URL is a bare domain (not an absolute http/s link)', async () => {
+      // e.g. PREVIEW_BASE_DOMAIN was set to a placeholder with no wildcard DNS;
+      // a misconfiguration could produce a string like "preview.deftly.app/foo".
+      delete process.env.RESEND_API_KEY
+      const res = await sendSiteReadyEmail({ businessName: 'Acme', siteUrl: 'preview.deftly.app/foo', to: 'a@b.test' })
+      expect(res.sent).toBe(false)
+      expect(res.reason).toBe('no-link')
+    })
+
+    it('passes the URL guard for a valid absolute path-mode link', async () => {
+      // Should proceed past the URL check; with no API key it stops at no-api-key, not no-link.
+      delete process.env.RESEND_API_KEY
+      const res = await sendSiteReadyEmail({
+        businessName: 'Acme',
+        siteUrl: 'https://engine.example.com/s/acme',
+        to: 'a@b.test',
+      })
+      expect(res.sent).toBe(false)
+      expect(res.reason).not.toBe('no-link')
+    })
   })
 
   describe('buildSiteReadyEmail copy', () => {
