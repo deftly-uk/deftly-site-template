@@ -2,6 +2,14 @@
 
 All notable changes to the Deftly Site Template are documented in this file.
 
+## [Unreleased]
+
+### Fixed — never email an unroutable preview link (2026-06-28)
+- `sendSiteReadyEmail` now requires an **absolute http(s) URL** (not merely non-empty), and
+  `previewUrlFor` only returns a path-mode link when the tenant-header override is honoured (else
+  the `/s/:sub` link 404s in production) and refuses known placeholder subdomain bases with no real
+  wildcard DNS. `.env.example` placeholder blanked. _(Codex adversarial review)_
+
 ## [Unreleased] — self-serve email delivery (Stage 4, 2026-06-26)
 
 The build worker now **delivers**: on a job reaching `ready` it emails the site link via
