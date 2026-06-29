@@ -4,6 +4,13 @@ All notable changes to the Deftly Site Template are documented in this file.
 
 ## [Unreleased]
 
+### Ops — engine deployed to production from main + Git auto-deploy reconnected (2026-06-29)
+- The new "your website is ready" copy was on `main` but production was still running an old
+  feature-branch commit, so the old email kept sending. Deployed `main` to production (copy now
+  live; `ALLOW_TENANT_HEADER_OVERRIDE=true` confirmed so path links still generate). Reconnected
+  the project's Git integration so future `main` merges deploy automatically (this entry is the
+  push that verifies it).
+
 ### Fixed — never email an unroutable preview link (2026-06-28)
 - `sendSiteReadyEmail` now requires an **absolute http(s) URL** (not merely non-empty), and
   `previewUrlFor` only returns a path-mode link when the tenant-header override is honoured (else
