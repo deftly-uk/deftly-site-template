@@ -145,7 +145,7 @@ export const buildSiteReadyEmail = (input: {
     '',
     `   View your free website:  ${url}`,
     '',
-    `It's built for a local plumber: your services, the areas you cover, and a big`,
+    `It's built around your business: your services, the areas you cover, and a big`,
     '"call now" button so customers reach you straight from their phone.',
     '',
     'Two quick things:',
@@ -181,7 +181,7 @@ export const buildSiteReadyEmail = (input: {
       <p>Thanks for taking my call earlier. As promised, I've built you a free preview of a brand-new website for <strong>${escapeHtml(business)}</strong>. Nothing to pay, nothing to set up: just take a look and tell me what you think.</p>
       <p style="margin:24px 0">${button('View your free website', url)}</p>
       <p style="color:#475569;font-size:14px">Or paste this into your browser:<br><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>
-      <p>It's built for a local plumber: your services, the areas you cover, and a big "call now" button so customers reach you straight from their phone.</p>
+      <p>It's built around your business: your services, the areas you cover, and a big "call now" button so customers reach you straight from their phone.</p>
       <ul style="color:#334155;padding-left:18px">
         <li>I can only keep this preview open for a few days, so do take a look while it's here.</li>
         <li>Going live takes a couple of minutes and it's up the same day.</li>
