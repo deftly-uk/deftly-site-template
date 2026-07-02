@@ -4,6 +4,19 @@ All notable changes to the Deftly Site Template are documented in this file.
 
 ## [Unreleased]
 
+### Added — Phase 0 plumber default look "The Reliable" + claim-safe defaults (2026-07-02)
+- Every new **plumber** build now launches on a clean, no-photo editorial look: a considered
+  `#14324f` navy + `#e0620d` orange launch palette (applied only when the rep captured no colour
+  of their own; a genuinely chosen colour is respected), no seeded stock imagery (the site renders
+  its CSS hero + a centred About block; customers add their own photos later), and warmer copy.
+  No CMS field, no DB migration, no CRM change; existing tenants untouched until re-built.
+- **Default copy makes no claim the CRM didn't capture.** Template fallbacks (used only when the
+  rep captured nothing) no longer assert "No call-out fee", "Free quotes", "Same-day emergency",
+  "fully insured", or accreditations ("Gas Safe", "NICEIC approved", "certified") — a misleading-
+  advertising exposure for traders who don't offer them. Specifics still show when genuinely
+  captured (selling points, insurance field, gated tagline + trust chips). Applies to plumber and
+  the electrician/roofer/other variants. Copy-only; tsc clean, 56/56 vitest green.
+
 ### Ops — engine deployed to production from main + Git auto-deploy reconnected (2026-06-29)
 - The new "your website is ready" copy was on `main` but production was still running an old
   feature-branch commit, so the old email kept sending. Deployed `main` to production (copy now
