@@ -195,6 +195,21 @@ export const SiteSettings: CollectionConfig = {
         {
           label: 'Branding & SEO',
           fields: [
+            {
+              name: 'designStyle',
+              type: 'select',
+              label: 'Design style (overall look & feel)',
+              defaultValue: 'reliable',
+              admin: {
+                description:
+                  'Switches the fonts, hero style, section order and default palette across the whole site.',
+              },
+              options: [
+                { label: 'The Reliable — calm, editorial, trustworthy', value: 'reliable' },
+                { label: 'Friendly Local — warm and approachable', value: 'friendly' },
+                { label: 'Emergency Red — urgent, 24/7, call-now', value: 'emergency' },
+              ],
+            },
             { name: 'brandColor', type: 'text', label: 'Brand colour (hex, e.g. #173A5E) — used for headers/footers' },
             { name: 'accentColor', type: 'text', label: 'Accent colour (hex, e.g. #E0620D) — used for buttons/calls-to-action' },
             { name: 'defaultMetaTitle', type: 'text', label: 'Default browser-tab / search title' },

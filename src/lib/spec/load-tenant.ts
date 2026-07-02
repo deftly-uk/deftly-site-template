@@ -12,8 +12,9 @@ import {
 } from '@/lib/provision'
 import { upsertTenantImage } from '@/lib/stock-images'
 import { getTemplate, primaryTown, type Template } from '@/lib/templates'
+import { getPreset } from '@/lib/presets'
 
-import { DEFAULT_ACCENT_COLOR, DEFAULT_BRAND_COLOR, parseSiteSpec, type SiteSpec } from './schema'
+import { parseSiteSpec, type SiteSpec } from './schema'
 
 /**
  * Spec-driven content loader (Stage 2).
@@ -58,15 +59,14 @@ export const buildTenantContentFromSpec = (
   const businessName = spec.identity.businessName
   const sellingPoints = spec.story.sellingPoints.length ? spec.story.sellingPoints : template.copy.trustHighlights
 
-  // Launch palette: the rep can't yet capture a colour (design picker is a later phase),
-  // so when the spec still carries the schema's blank-state default we substitute the
-  // template's considered launch palette. A colour the rep genuinely chose is respected.
-  const brandColor =
-    spec.story.brandColor === DEFAULT_BRAND_COLOR ? template.look?.brandColor ?? spec.story.brandColor : spec.story.brandColor
-  const accentColor =
-    spec.story.accentColor === DEFAULT_ACCENT_COLOR
-      ? template.look?.accentColor ?? spec.story.accentColor
-      : spec.story.accentColor
+  // The chosen design preset (drives palette, fonts, hero style and section order).
+  const preset = getPreset(spec.story.designStyle)
+
+  // Colour: a colour the rep genuinely captured is ALWAYS respected. When they
+  // captured none it is null, and we apply the chosen preset's launch palette.
+  // (No sentinel-hex comparison — null is the only "not captured" signal.)
+  const brandColor = spec.story.brandColor ?? preset.palette.brand
+  const accentColor = spec.story.accentColor ?? preset.palette.accent
 
   const rating =
     spec.trust.googleRating != null
@@ -106,6 +106,7 @@ export const buildTenantContentFromSpec = (
     privacyPolicy: spec.legal.privacyPolicy
       ? richText([paragraph(spec.legal.privacyPolicy)])
       : autoPrivacyPolicy(businessName),
+    designStyle: preset.designStyle,
     brandColor,
     accentColor,
     defaultMetaTitle: `${businessName} | ${template.copy.servicesHeading} in ${town}`,
@@ -195,16 +196,17 @@ export const loadTenantFromSpec = async (
     status: options.status ?? 'pending',
   })
 
-  // Imagery depends on the template's launch `look`. The editorial look (The Reliable)
-  // seeds NO stock imagery — the site renders its clean CSS hero + a centred About block,
-  // and the customer adds their own photos later (they appear automatically, Article I).
-  // Other templates still launch on tasteful per-industry gradient placeholders.
-  const look = template.look
+  // Imagery depends on the chosen design preset. The photo-led look (Friendly Local)
+  // seeds tasteful per-industry stock placeholders; the editorial (The Reliable) and
+  // emergency looks seed NO stock imagery — they render a considered CSS hero + a
+  // centred About block. Either way the customer adds their own photos later and they
+  // appear automatically (Article I).
+  const preset = getPreset(spec.story.designStyle)
   const businessName = spec.identity.businessName
 
   let heroId: number | undefined
   let aboutId: number | undefined
-  if (!look?.editorial) {
+  if (preset.seedImagery) {
     heroId = await upsertTenantImage(payload, tenant.id, {
       filename: `${subdomain}--hero.jpg`,
       alt: `${businessName} work`,

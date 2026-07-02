@@ -28,6 +28,74 @@
   --radius-card: 14px;
 }
 
+/* ============================================================================
+   Design presets (Phase 1). Presets change PRESENTATION only — fonts, radius,
+   shadow, contrast — never copy or claims.
+   • Fonts: <html data-font> activates a pairing (next/font sets each --font-* var
+     on <html>; the @theme block above is the Reliable default).
+   • Surfaces: .site[data-preset] tweaks cards/buttons/eyebrows.
+   ========================================================================== */
+html[data-font='friendly'] {
+  --font-heading: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-open-sans), ui-sans-serif, system-ui, sans-serif;
+}
+html[data-font='emergency'] {
+  --font-heading: var(--font-barlow-condensed), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Friendly Local — rounder, warmer, softer. */
+.site[data-preset='friendly'] {
+  --radius-card: 22px;
+}
+.site[data-preset='friendly'] .card {
+  border-radius: 22px;
+  box-shadow: 0 2px 4px rgba(16, 24, 40, 0.05),
+    0 18px 40px -24px color-mix(in srgb, var(--color-brand) 40%, transparent);
+}
+.site[data-preset='friendly'] .btn {
+  border-radius: 999px;
+}
+/* Keep the amber CTA genuinely warm: a friendly amber is too light to carry white
+   text at AA, so the shared button darkens it to a muddy mustard that erodes this
+   preset's identity. Here we use the true amber fill with a dark-ink label instead
+   (amber + near-black clears AA comfortably) so the button stays cheerful. */
+.site[data-preset='friendly'] .btn-accent {
+  background: var(--color-accent);
+  color: #1a1205;
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+.site[data-preset='friendly'] .btn-accent:hover {
+  background: color-mix(in srgb, var(--color-accent) 88%, #000);
+}
+.site[data-preset='friendly'] .eyebrow {
+  letter-spacing: 0.04em;
+}
+
+/* Emergency Red — sharp, high-contrast, urgent. */
+.site[data-preset='emergency'] {
+  --radius-card: 4px;
+}
+.site[data-preset='emergency'] .card {
+  border-radius: 4px;
+  border-width: 2px;
+  box-shadow: none;
+}
+.site[data-preset='emergency'] .btn {
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-weight: 700;
+}
+.site[data-preset='emergency'] .eyebrow {
+  letter-spacing: 0.14em;
+}
+.site[data-preset='emergency'] h1,
+.site[data-preset='emergency'] h2 {
+  text-transform: uppercase;
+  letter-spacing: -0.005em;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
