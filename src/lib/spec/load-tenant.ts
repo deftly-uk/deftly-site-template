@@ -13,7 +13,7 @@ import {
 import { upsertTenantImage } from '@/lib/stock-images'
 import { getTemplate, primaryTown, type Template } from '@/lib/templates'
 
-import { parseSiteSpec, type SiteSpec } from './schema'
+import { DEFAULT_ACCENT_COLOR, DEFAULT_BRAND_COLOR, parseSiteSpec, type SiteSpec } from './schema'
 
 /**
  * Spec-driven content loader (Stage 2).
@@ -52,11 +52,21 @@ const autoPrivacyPolicy = (businessName: string) =>
 export const buildTenantContentFromSpec = (
   spec: SiteSpec,
   template: Template,
-  images: { heroId: number; aboutId: number },
+  images: { heroId?: number; aboutId?: number; ogImageId?: number },
 ): TenantContent => {
   const town = primaryTown(spec)
   const businessName = spec.identity.businessName
   const sellingPoints = spec.story.sellingPoints.length ? spec.story.sellingPoints : template.copy.trustHighlights
+
+  // Launch palette: the rep can't yet capture a colour (design picker is a later phase),
+  // so when the spec still carries the schema's blank-state default we substitute the
+  // template's considered launch palette. A colour the rep genuinely chose is respected.
+  const brandColor =
+    spec.story.brandColor === DEFAULT_BRAND_COLOR ? template.look?.brandColor ?? spec.story.brandColor : spec.story.brandColor
+  const accentColor =
+    spec.story.accentColor === DEFAULT_ACCENT_COLOR
+      ? template.look?.accentColor ?? spec.story.accentColor
+      : spec.story.accentColor
 
   const rating =
     spec.trust.googleRating != null
@@ -96,16 +106,18 @@ export const buildTenantContentFromSpec = (
     privacyPolicy: spec.legal.privacyPolicy
       ? richText([paragraph(spec.legal.privacyPolicy)])
       : autoPrivacyPolicy(businessName),
-    brandColor: spec.story.brandColor,
-    accentColor: spec.story.accentColor,
+    brandColor,
+    accentColor,
     defaultMetaTitle: `${businessName} | ${template.copy.servicesHeading} in ${town}`,
     defaultMetaDescription: template.heroSubheadline(spec),
-    ogImage: images.heroId,
+    ogImage: images.ogImageId,
   }
 
   const homePage: Record<string, unknown> = {
     heroHeadline: template.heroHeadline(spec),
     heroSubheadline: template.heroSubheadline(spec),
+    // Left unset for the no-photo editorial hero (The Reliable); the customer can add a
+    // real hero photo later and it appears automatically (Article I).
     heroImage: images.heroId,
     heroShowRating: spec.trust.googleRating != null,
     trustStripEnabled: true,
@@ -183,26 +195,36 @@ export const loadTenantFromSpec = async (
     status: options.status ?? 'pending',
   })
 
-  // Always generate placeholders so the site looks finished immediately; real photos
-  // replace them later (spec.assets.hasRealPhotos records whether they're coming).
-  const heroId = await upsertTenantImage(payload, tenant.id, {
-    filename: `${subdomain}--hero.jpg`,
-    alt: `${spec.identity.businessName} work`,
-    width: 1920,
-    height: 1080,
-    variant: 'hero',
-    palette: template.palette,
-  })
-  const aboutId = await upsertTenantImage(payload, tenant.id, {
-    filename: `${subdomain}--about.jpg`,
-    alt: `${spec.identity.businessName} team at work`,
-    width: 1280,
-    height: 960,
-    variant: 'about',
-    palette: template.palette,
-  })
+  // Imagery depends on the template's launch `look`. The editorial look (The Reliable)
+  // seeds NO stock imagery — the site renders its clean CSS hero + a centred About block,
+  // and the customer adds their own photos later (they appear automatically, Article I).
+  // Other templates still launch on tasteful per-industry gradient placeholders.
+  const look = template.look
+  const businessName = spec.identity.businessName
 
-  const content = buildTenantContentFromSpec(spec, template, { heroId, aboutId })
+  let heroId: number | undefined
+  let aboutId: number | undefined
+  if (!look?.editorial) {
+    heroId = await upsertTenantImage(payload, tenant.id, {
+      filename: `${subdomain}--hero.jpg`,
+      alt: `${businessName} work`,
+      width: 1920,
+      height: 1080,
+      variant: 'hero',
+      palette: template.palette,
+    })
+    aboutId = await upsertTenantImage(payload, tenant.id, {
+      filename: `${subdomain}--about.jpg`,
+      alt: `${businessName} team at work`,
+      width: 1280,
+      height: 960,
+      variant: 'about',
+      palette: template.palette,
+    })
+  }
+  const ogImageId = heroId ?? aboutId
+
+  const content = buildTenantContentFromSpec(spec, template, { heroId, aboutId, ogImageId })
   await provisionTenantContent(payload, tenant.id, content)
 
   let admin: User | undefined

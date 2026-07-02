@@ -14,6 +14,24 @@ export type Template = {
   palette: StockPalette
   /** SiteSettings.tradeType enum value (drives schema.org business subtype). */
   cmsTradeType: string
+  /**
+   * The default "look" the site launches with, applied when the rep captured no design
+   * choice. Everything stays editable in the admin panel afterwards (Article I). The
+   * per-preset design picker is a later phase.
+   */
+  look?: {
+    /**
+     * No stock imagery at all — a clean, typographic editorial look (The Reliable): no
+     * hero photo, no About photo, so the site renders its considered CSS hero and a
+     * centred editorial About block. Sidesteps the imagery gap entirely and ships great
+     * today; the customer adds their own photos later and they appear automatically.
+     */
+    editorial?: boolean
+    /** Launch brand colour, used when the rep captured no colour of their own. */
+    brandColor?: string
+    /** Launch accent colour, used when the rep captured no colour of their own. */
+    accentColor?: string
+  }
   copy: {
     servicesEyebrow: string
     servicesHeading: string

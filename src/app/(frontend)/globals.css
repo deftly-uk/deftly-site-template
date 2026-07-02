@@ -7,9 +7,9 @@
    (SiteSettings.brandColor / accentColor) on the .site wrapper.
    ========================================================================== */
 @theme {
-  --color-brand: #173a5e;
-  --color-brand-dark: #0c2238;
-  --color-brand-light: #25507f;
+  --color-brand: #14324f;
+  --color-brand-dark: #0c1d2e;
+  --color-brand-light: #3a536b;
   --color-accent: #e0620d;
   /* accent-strong: AA-safe (>=4.5:1) for white text on accent + small accent text.
      Auto-derived from the CMS accent in theme.ts so customer colours stay accessible. */
