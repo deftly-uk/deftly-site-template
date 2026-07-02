@@ -14,7 +14,7 @@ export const Hero: React.FC<Props> = ({ home, settings }) => {
   const image = getImage(home.heroImage, 'hero')
   const tel = telHref(settings.phone)
   const primaryLabel = home.heroPrimaryCtaLabel || 'Call now'
-  const secondaryLabel = home.heroSecondaryCtaLabel || 'Get a free quote'
+  const secondaryLabel = home.heroSecondaryCtaLabel || 'Get a quote'
   const rating = settings.rating
   const firstAccreditation = settings.accreditations?.[0]
 

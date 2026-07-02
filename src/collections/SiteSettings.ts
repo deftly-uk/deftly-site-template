@@ -65,7 +65,7 @@ export const SiteSettings: CollectionConfig = {
               fields: [
                 { name: 'callCaption', type: 'text', label: 'Small text above the phone number in the header', defaultValue: 'Call us today' },
                 { name: 'callLabel', type: 'text', label: '"Call" button text', defaultValue: 'Call now' },
-                { name: 'quoteLabel', type: 'text', label: '"Get a quote" button text', defaultValue: 'Get a free quote' },
+                { name: 'quoteLabel', type: 'text', label: '"Get a quote" button text', defaultValue: 'Get a quote' },
               ],
             },
             {

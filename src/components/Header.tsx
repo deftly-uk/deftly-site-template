@@ -53,7 +53,7 @@ export const Header: React.FC<{ settings: SiteSetting }> = ({ settings }) => {
             </a>
           )}
           <a href="#contact" className="btn btn-accent hidden h-11 min-h-0 px-5 text-base md:inline-flex">
-            {settings.cta?.quoteLabel || 'Get a free quote'}
+            {settings.cta?.quoteLabel || 'Get a quote'}
           </a>
         </div>
       </div>

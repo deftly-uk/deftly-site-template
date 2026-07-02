@@ -27,7 +27,7 @@ export const ContactCTA: React.FC<Props> = ({ home, settings }) => {
         <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
             <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-              {home.contactHeading || 'Get a free, no-obligation quote'}
+              {home.contactHeading || 'Get a no-obligation quote'}
             </h2>
             {home.contactBody && (
               <p className="mt-4 text-lg leading-relaxed text-slate-100/90">{home.contactBody}</p>
@@ -78,7 +78,7 @@ export const ContactCTA: React.FC<Props> = ({ home, settings }) => {
               submitLabel={home.contactSubmitLabel || 'Request a callback'}
               successMessage={
                 home.contactSuccessMessage ||
-                "Thanks — we've got your details and will be in touch shortly."
+                "Thanks, we've got your details and will be in touch shortly."
               }
             />
           </div>

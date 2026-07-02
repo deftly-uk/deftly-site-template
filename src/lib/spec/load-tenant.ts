@@ -142,7 +142,7 @@ export const buildTenantContentFromSpec = (
 
   const services = spec.services.map((s, i) => ({
     title: s.title,
-    summary: s.summary ?? `${s.title} — get in touch for a free quote.`,
+    summary: s.summary ?? `Get in touch to talk about ${s.title.toLowerCase()}.`,
     icon: template.serviceIcon(s.title),
     order: s.isHeadline ? 0 : i + 1,
   }))

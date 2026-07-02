@@ -38,7 +38,7 @@ export const HomePage: CollectionConfig = {
             { name: 'heroSubheadline', type: 'textarea', label: 'Reassuring line under the headline' },
             { name: 'heroImage', type: 'upload', relationTo: 'media', label: 'Hero background photo' },
             { name: 'heroPrimaryCtaLabel', type: 'text', label: 'Primary button text', defaultValue: 'Call now' },
-            { name: 'heroSecondaryCtaLabel', type: 'text', label: 'Secondary button text', defaultValue: 'Get a free quote' },
+            { name: 'heroSecondaryCtaLabel', type: 'text', label: 'Secondary button text', defaultValue: 'Get a quote' },
             { name: 'heroShowRating', type: 'checkbox', label: 'Show the star rating in the hero', defaultValue: true },
           ],
         },
@@ -95,7 +95,7 @@ export const HomePage: CollectionConfig = {
         {
           label: 'Contact',
           fields: [
-            { name: 'contactHeading', type: 'text', label: 'Section heading', defaultValue: 'Get a free, no-obligation quote' },
+            { name: 'contactHeading', type: 'text', label: 'Section heading', defaultValue: 'Get a no-obligation quote' },
             { name: 'contactBody', type: 'textarea', label: 'Short line under the heading' },
             {
               name: 'contactReassurances',
@@ -106,7 +106,7 @@ export const HomePage: CollectionConfig = {
             },
             { name: 'contactCallPrompt', type: 'text', label: 'Text above the phone number in the contact band', defaultValue: 'Prefer to talk now? Call us:' },
             { name: 'contactSubmitLabel', type: 'text', label: 'Send button text', defaultValue: 'Request a callback' },
-            { name: 'contactSuccessMessage', type: 'textarea', label: 'Thank-you message after sending', defaultValue: "Thanks — we've got your details and will be in touch shortly." },
+            { name: 'contactSuccessMessage', type: 'textarea', label: 'Thank-you message after sending', defaultValue: "Thanks, we've got your details and will be in touch shortly." },
           ],
         },
         // --------------------------------------------------------------------- SEO
