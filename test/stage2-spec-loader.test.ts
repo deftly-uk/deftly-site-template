@@ -7,7 +7,6 @@ import type { Tenant } from '@/payload-types'
 import { parseSiteSpec, safeParseSiteSpec } from '@/lib/spec/schema'
 import { PLUMBER_SAMPLE_INPUT } from '@/lib/spec/sample-plumber'
 import { loadTenantFromSpec } from '@/lib/spec/load-tenant'
-import { tenantMediaPrefix } from '@/lib/storage'
 
 import { getTestPayload, uniqueSub } from './helpers/payload'
 
@@ -98,10 +97,22 @@ describe('Stage 2: loading a tenant from a spec', () => {
     expect(docs[0].authorName).toBe('Sarah T.')
   })
 
-  it('falls back to per-tenant stock images when there are no real photos', async () => {
-    const { docs } = await payload.find({ collection: 'media', where: { tenant: { equals: tenant.id } }, limit: 100, overrideAccess: true })
-    expect(docs.length).toBeGreaterThanOrEqual(2)
-    for (const m of docs) expect(m.prefix).toBe(tenantMediaPrefix(sub))
+  it('seeds NO stock imagery for the editorial default (The Reliable)', async () => {
+    // The Reliable is a clean, no-photo editorial look: no hero image and no About image
+    // are seeded, so the site renders its considered CSS hero + a centred About block.
+    // The customer adds their own photos later and they appear automatically (Article I).
+    const { docs: media } = await payload.find({ collection: 'media', where: { tenant: { equals: tenant.id } }, limit: 100, overrideAccess: true })
+    expect(media.length).toBe(0)
+
+    const home = (await payload.find({ collection: 'home-page', where: { tenant: { equals: tenant.id } }, limit: 1, overrideAccess: true })).docs[0]
+    expect(home.heroImage).toBeFalsy()
+    expect(home.aboutImage).toBeFalsy()
+  })
+
+  it('applies the plumber launch palette when the rep captured no colour', async () => {
+    const settings = (await payload.find({ collection: 'site-settings', where: { tenant: { equals: tenant.id } }, limit: 1, overrideAccess: true })).docs[0]
+    expect(settings.brandColor).toBe('#14324f')
+    expect(settings.accentColor).toBe('#e0620d')
   })
 
   it('is idempotent — re-running the same spec does not duplicate the tenant or its content', async () => {
