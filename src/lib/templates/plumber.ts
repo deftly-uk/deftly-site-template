@@ -37,12 +37,17 @@ export const PLUMBER_TEMPLATE: Template = {
     aboutHeading: 'Local, qualified and genuinely reliable',
     testimonialsEyebrow: 'Reviews',
     testimonialsHeading: 'What our customers say',
-    contactHeading: 'Get your free, no-obligation quote',
+    contactHeading: 'Get your no-obligation quote',
+    // Fallback selling points, shown ONLY when the rep captured none. Kept deliberately
+    // claim-free: specific promises (no call-out fee, free quotes, same-day/emergency,
+    // "fully insured", accreditations) are shown only when actually captured in the CRM
+    // (they flow in via sellingPoints, the insurance field and accreditation chips).
+    // Defaults describe our approach, never an unverified fact about this plumber.
     trustHighlights: [
-      'No call-out fee',
-      'Free, no-obligation quotes',
-      'Same-day emergency callouts',
+      'Friendly, professional service',
       'Clean, tidy and respectful of your home',
+      'Clear quotes and honest advice',
+      'Local plumbers, happy to help',
     ],
   },
   serviceIcon: iconFromKeywords,
@@ -54,7 +59,7 @@ export const PLUMBER_TEMPLATE: Template = {
       spec.trust.googleRating != null
         ? `Rated ${spec.trust.googleRating} by ${spec.trust.googleReviewCount ?? 'local'} customers. `
         : ''
-    return `${rating}Friendly, fully-insured plumbers for repairs, boilers and bathrooms. Fixed quotes, no call-out fee, and we always tidy up after ourselves.`
+    return `${rating}Friendly local plumbers for repairs, boilers and bathrooms, with honest advice and tidy, careful work.`
   },
   tagline: (spec: SiteSpec) => {
     const gasSafe = spec.trust.accreditations.some((a) => /gas safe/i.test(a.name))

@@ -10,7 +10,7 @@ import {
 
 /**
  * Per-industry template registry (Stage 2). A template turns a validated SiteSpec into
- * a fully-populated, on-brand site — supplying the section copy, default trust promises,
+ * a fully-populated, on-brand site: supplying the section copy, default trust promises,
  * service icons and stock-image palette the spec doesn't carry. The plumber variant is
  * canonical (./plumber.ts); the rest reuse the same shape with trade-appropriate wording.
  *
@@ -35,33 +35,36 @@ const makeVariant = (
     servicesHeading: `${noun} services`,
     servicesIntro: `Professional ${noun.toLowerCase()} work, done properly and on time.`,
     aboutEyebrow: 'Why choose us',
-    aboutHeading: 'Trusted, certified and reliable',
+    aboutHeading: 'Trusted, professional and reliable',
     testimonialsEyebrow: 'Reviews',
     testimonialsHeading: 'What our customers say',
-    contactHeading: 'Get a free, no-obligation quote',
+    contactHeading: 'Get a no-obligation quote',
     trustHighlights: highlights,
   },
   serviceIcon: iconFromKeywords,
   heroHeadline: (spec) => spec.story.heroHeadline ?? `${noun} in ${primaryTown(spec)}`,
   heroSubheadline: (spec) =>
     spec.story.whyUs?.slice(0, 160) ??
-    `Local, fully insured and trusted across ${primaryTown(spec)}. Free quotes and tidy, reliable work.`,
+    `Local, professional and trusted across ${primaryTown(spec)}, with honest advice and tidy, reliable work.`,
   tagline: (spec) => `${titleCaseTrade(spec.identity.tradeType)} in ${primaryTown(spec)}`,
 })
 
+// Fallback selling points, shown ONLY when the rep captured none. Kept claim-free:
+// anything specific (accreditations like NICEIC, insurance, free quotes, guarantees) is
+// shown only when actually captured in the CRM. Defaults describe approach, not facts.
 const ELECTRICIAN_TEMPLATE = makeVariant('electrician', 'electrician', 'Electrician', 'Electrical', [
-  'NICEIC approved',
-  'Free quotes',
-  'Certified, guaranteed work',
+  'Friendly, professional service',
+  'Clean, careful and tidy work',
+  'Clear quotes and honest advice',
 ])
 const ROOFER_TEMPLATE = makeVariant('roofer', 'roofer', 'RoofingContractor', 'Roofing', [
-  'Free roof inspections',
-  'Fully insured',
-  'Workmanship guarantee',
+  'Friendly, professional service',
+  'Careful, tidy work',
+  'Clear quotes and honest advice',
 ])
 const OTHER_TEMPLATE = makeVariant('other', 'other', 'LocalBusiness', 'Trade', [
-  'Free quotes',
-  'Fully insured',
+  'Friendly, professional service',
+  'Careful, tidy work',
   'Reliable local service',
 ])
 
