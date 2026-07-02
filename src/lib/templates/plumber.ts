@@ -8,9 +8,9 @@ import { iconFromKeywords, primaryTown, type Template } from './shared'
  * Defines how a plumber's SiteSpec becomes a finished site: trade-aware section copy in a
  * warm, customer-problem voice, sensible default trust promises, Gas-Safe-flavoured
  * wording, the plumbing icon set, an auto-generated hero headline when the rep didn't
- * capture one, and the default launch "look" (The Reliable — a clean, no-photo
+ * capture one, and the default launch "look" (The Reliable: a clean, no-photo
  * editorial-trust design with a considered navy/orange palette).
- * All of it is editable by the customer afterwards (Article I) — this is just a strong
+ * All of it is editable by the customer afterwards (Article I); this is just a strong
  * starting point.
  */
 export const PLUMBER_TEMPLATE: Template = {
@@ -30,7 +30,11 @@ export const PLUMBER_TEMPLATE: Template = {
     servicesIntro:
       'From a dripping tap to a new boiler, one local team you can count on to turn up on time and get it right.',
     aboutEyebrow: 'Why choose us',
-    aboutHeading: 'Local, Gas Safe and genuinely reliable',
+    // Accreditation-neutral by default: "Gas Safe" is a legally protected registration,
+    // so we never assert it in generic copy. It surfaces only where it's genuinely held
+    // (the tagline gates it on a Gas Safe accreditation; accreditations render as trust
+    // chips). A customer who is Gas Safe registered can add it to this heading in /admin.
+    aboutHeading: 'Local, qualified and genuinely reliable',
     testimonialsEyebrow: 'Reviews',
     testimonialsHeading: 'What our customers say',
     contactHeading: 'Get your free, no-obligation quote',
