@@ -14,10 +14,6 @@ import { z } from "zod";
  *  spec + every build job, so the engine can branch on what it was handed. */
 export const SPEC_VERSION = 1 as const;
 
-/** Brand defaults used when the customer has no colours of their own yet. */
-export const DEFAULT_BRAND_COLOR = "#1e3a8a"; // deep "trustworthy trade" blue
-export const DEFAULT_ACCENT_COLOR = "#f97316"; // call-to-action orange
-
 const hexColor = z
   .string()
   .regex(/^#[0-9a-fA-F]{6}$/, "must be a 6-digit hex colour, e.g. #1e3a8a");
@@ -116,8 +112,19 @@ export const storySchema = z.object({
   heroHeadline: trimmed.max(160).nullable().default(null),
   whyUs: trimmed.max(2000).nullable().default(null),
   sellingPoints: z.array(nonEmpty.max(160)).max(12).default([]),
-  brandColor: hexColor.default(DEFAULT_BRAND_COLOR),
-  accentColor: hexColor.default(DEFAULT_ACCENT_COLOR),
+  /**
+   * The launch design preset the rep picked. Drives the engine's palette, font
+   * pairing, hero style, section order and card styling. Defaults to the calm,
+   * editorial "reliable" look. Fully editable in /admin afterwards (Article I).
+   */
+  designStyle: z.enum(["reliable", "friendly", "emergency"]).default("reliable"),
+  /**
+   * Brand / accent colours. NULL = the rep captured no colour, so the engine
+   * applies the chosen preset's palette; a real hex is always respected. Never
+   * use a sentinel hex to mean "unset" — null is the only "not captured" signal.
+   */
+  brandColor: hexColor.nullable().default(null),
+  accentColor: hexColor.nullable().default(null),
 });
 
 /* — Legal ────────────────────────────────────────────────────────────────── */

@@ -4,9 +4,10 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import type { Payload } from 'payload'
 
 import type { Tenant } from '@/payload-types'
-import { parseSiteSpec, safeParseSiteSpec } from '@/lib/spec/schema'
+import { parseSiteSpec, safeParseSiteSpec, type SiteSpecInput } from '@/lib/spec/schema'
 import { PLUMBER_SAMPLE_INPUT } from '@/lib/spec/sample-plumber'
 import { loadTenantFromSpec } from '@/lib/spec/load-tenant'
+import { getPreset } from '@/lib/presets'
 
 import { getTestPayload, uniqueSub } from './helpers/payload'
 
@@ -33,10 +34,12 @@ describe('Stage 2: SiteSpec contract', () => {
     expect(bad.success).toBe(false)
   })
 
-  it('applies schema defaults (brand colours) for fields the rep left blank', () => {
+  it('leaves brand colours null when the rep captured none, and defaults the preset', () => {
     const spec = parseSiteSpec(PLUMBER_SAMPLE_INPUT)
-    expect(spec.story.brandColor).toMatch(/^#[0-9a-f]{6}$/i)
-    expect(spec.story.accentColor).toMatch(/^#[0-9a-f]{6}$/i)
+    // Null = "not captured" (the only such signal) → the engine uses the preset palette.
+    expect(spec.story.brandColor).toBeNull()
+    expect(spec.story.accentColor).toBeNull()
+    expect(spec.story.designStyle).toBe('reliable')
   })
 })
 
@@ -176,5 +179,66 @@ describe('Stage 2: loading a tenant from a spec', () => {
     const after = (await payload.find({ collection: 'tenants', where: { subdomain: { equals: s } }, limit: 1, overrideAccess: true })).docs[0]
     expect(after.customDomain).toBe('myplumber.co.uk') // not cleared → custom-domain site stays online
     expect(after.status).toBe('active') // not downgraded back to pending
+  })
+})
+
+describe('Stage 2: design presets', () => {
+  let payload: Payload
+
+  beforeAll(async () => {
+    payload = await getTestPayload()
+  })
+
+  /** Build a tenant from the plumber sample with a story override, then read back its
+   *  provisioned settings + media + home page. */
+  const buildWith = async (story: Record<string, unknown>, prefix: string) => {
+    const sub = uniqueSub(prefix)
+    const input: SiteSpecInput = {
+      ...PLUMBER_SAMPLE_INPUT,
+      story: { ...PLUMBER_SAMPLE_INPUT.story, ...story },
+    }
+    await loadTenantFromSpec(payload, input, { subdomain: sub, provisionAdmin: false, status: 'active' })
+    const tenant = (await payload.find({ collection: 'tenants', where: { subdomain: { equals: sub } }, limit: 1, overrideAccess: true })).docs[0]
+    const settings = (await payload.find({ collection: 'site-settings', where: { tenant: { equals: tenant.id } }, limit: 1, overrideAccess: true })).docs[0]
+    const media = (await payload.find({ collection: 'media', where: { tenant: { equals: tenant.id } }, limit: 100, overrideAccess: true })).docs
+    const home = (await payload.find({ collection: 'home-page', where: { tenant: { equals: tenant.id } }, limit: 1, overrideAccess: true })).docs[0]
+    return { settings, media, home }
+  }
+
+  it('defaults to the reliable preset + its navy palette, no imagery', async () => {
+    const { settings, media } = await buildWith({}, 'preset-reliable')
+    expect(settings.designStyle).toBe('reliable')
+    expect(settings.brandColor).toBe(getPreset('reliable').palette.brand)
+    expect(settings.accentColor).toBe(getPreset('reliable').palette.accent)
+    expect(media.length).toBe(0)
+  })
+
+  it('persists the Friendly Local preset palette + launches clean (no stock imagery)', async () => {
+    const { settings, media, home } = await buildWith({ designStyle: 'friendly' }, 'preset-friendly')
+    expect(settings.designStyle).toBe('friendly')
+    expect(settings.brandColor).toBe(getPreset('friendly').palette.brand)
+    expect(settings.accentColor).toBe(getPreset('friendly').palette.accent)
+    // Like The Reliable, it ships on a clean CSS hero — no generic placeholder seeded.
+    expect(media.length).toBe(0)
+    expect(home.heroImage).toBeFalsy()
+  })
+
+  it('persists the Emergency Red preset palette + seeds NO imagery', async () => {
+    const { settings, media, home } = await buildWith({ designStyle: 'emergency' }, 'preset-emergency')
+    expect(settings.designStyle).toBe('emergency')
+    expect(settings.brandColor).toBe(getPreset('emergency').palette.brand)
+    expect(settings.accentColor).toBe(getPreset('emergency').palette.accent)
+    expect(media.length).toBe(0)
+    expect(home.heroImage).toBeFalsy()
+  })
+
+  it('always respects a captured colour over the preset palette', async () => {
+    const { settings } = await buildWith(
+      { designStyle: 'friendly', brandColor: '#123456', accentColor: '#654321' },
+      'preset-captured',
+    )
+    expect(settings.designStyle).toBe('friendly') // preset still recorded
+    expect(settings.brandColor).toBe('#123456') // …but the captured colour wins
+    expect(settings.accentColor).toBe('#654321')
   })
 })

@@ -10,6 +10,7 @@ import { Services } from '@/components/sections/Services'
 import { Testimonials } from '@/components/sections/Testimonials'
 import { TrustStrip } from '@/components/sections/TrustStrip'
 import { getHomePage, getServices, getSiteSettings, getTestimonials } from '@/lib/queries'
+import { getPreset, type SectionName } from '@/lib/presets'
 import { buildHomeMetadata, buildLocalBusinessJsonLd } from '@/lib/seo'
 import { getRequestBaseUrl, requireRequestTenant } from '@/lib/tenant'
 
@@ -42,15 +43,22 @@ const Home = async () => {
   // Tenant resolved but not yet populated (e.g. queued/building) — treat as not found.
   if (!settings || !home) notFound()
 
+  // The design preset decides which sections render and in what order (and the hero
+  // style). A section registry keeps the render declarative; unknown names are skipped.
+  const preset = getPreset(settings.designStyle)
+  const sections: Record<SectionName, React.ReactNode> = {
+    hero: <Hero key="hero" home={home} settings={settings} variant={preset.heroStyle} />,
+    trust: <TrustStrip key="trust" home={home} settings={settings} />,
+    services: <Services key="services" home={home} services={services} />,
+    about: <About key="about" home={home} />,
+    testimonials: <Testimonials key="testimonials" home={home} testimonials={testimonials} />,
+    contact: <ContactCTA key="contact" home={home} settings={settings} />,
+  }
+
   return (
     <>
       <JsonLd data={buildLocalBusinessJsonLd(settings, baseUrl)} />
-      <Hero home={home} settings={settings} />
-      <TrustStrip home={home} settings={settings} />
-      <Services home={home} services={services} />
-      <About home={home} />
-      <Testimonials home={home} testimonials={testimonials} />
-      <ContactCTA home={home} settings={settings} />
+      {preset.sectionOrder.map((name) => sections[name]).filter(Boolean)}
     </>
   )
 }

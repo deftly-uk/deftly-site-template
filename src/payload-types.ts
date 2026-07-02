@@ -404,6 +404,10 @@ export interface SiteSetting {
     facebook?: string | null;
     instagram?: string | null;
   };
+  /**
+   * Switches the fonts, hero style, section order and default palette across the whole site.
+   */
+  designStyle?: ('reliable' | 'friendly' | 'emergency') | null;
   brandColor?: string | null;
   accentColor?: string | null;
   defaultMetaTitle?: string | null;
@@ -816,6 +820,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         facebook?: T;
         instagram?: T;
       };
+  designStyle?: T;
   brandColor?: T;
   accentColor?: T;
   defaultMetaTitle?: T;

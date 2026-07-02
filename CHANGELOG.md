@@ -4,6 +4,32 @@ All notable changes to the Deftly Site Template are documented in this file.
 
 ## [Unreleased]
 
+### Added — Phase 1 design presets: 3 genuinely distinct launch looks (2026-07-02)
+- **Every new build now has a chosen design preset**, not just two hex colours. Three presets
+  ship: **The Reliable** (default — calm navy editorial, unchanged from Phase 0), **Friendly
+  Local** (warm teal + amber, rounded, centred hero, Poppins/Open Sans, human-trust-first section
+  order) and **Emergency Red** (near-black + urgent red, condensed uppercase Barlow, an oversized
+  tappable "call now" hero, sharp cards, urgency-first order). Each preset drives palette, font
+  pairing, hero style, homepage section order and card styling — verified visibly distinct on
+  desktop and mobile with identical content.
+- **The rep's preset choice rides the spec** (`story.designStyle`) from the CRM and is persisted on
+  the customer's editable `SiteSettings.designStyle` (new select field + migration
+  `20260702_113052_add_design_style`), so the choice sticks and the customer can switch look or
+  recolour later in `/admin` (Article I). New preset registry at `src/lib/presets/`.
+- **Fonts load all three pairings statically** (`next/font`), switched per-site by a `data-font`
+  attribute; sections render from a `sectionOrder` registry; the hero has three variants; card /
+  button / eyebrow styling keys off a `data-preset` attribute.
+- **Colour signal fixed:** brand/accent colours are now nullable. `null` = "the rep captured no
+  colour" → the preset palette is applied; a captured hex is always respected. The old
+  "equals the default hex" sentinel (which would have silently overridden a rep who genuinely
+  picked the default navy) is gone.
+- **Still claim-safe:** presets change presentation only. Re-audited with bare-minimum builds
+  (nothing captured) across all three presets — no unearned "24/7", "Gas Safe", "insured", "free
+  quote" or "same-day" claim appears in any default; the emergency 24/7 ribbon and every hero trust
+  chip render only from genuinely captured data. Existing tenants are untouched (build is
+  additive-safe); previewing a preset needs a fresh tenant. tsc clean both repos; 60/60 engine
+  vitest green (incl. new preset-mapping + captured-colour tests).
+
 ### Added — Phase 0 plumber default look "The Reliable" + claim-safe defaults (2026-07-02)
 - Every new **plumber** build now launches on a clean, no-photo editorial look: a considered
   `#14324f` navy + `#e0620d` orange launch palette (applied only when the rep captured no colour
